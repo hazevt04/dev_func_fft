@@ -23,4 +23,4 @@ __device__ __host__
 void calc_psds(float* __restrict__ psds, const cufftComplex* __restrict__ con_sqrs, const int num_con_sqrs, const float log10num_con_sqrs);
 
 __global__
-void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* frequencies, const cufftComplex* __restrict__ samples, const int num_bits);
+void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* frequencies, const cufftComplex* __restrict__ samples, const int num_bits, const float log10num_con_sqrs);

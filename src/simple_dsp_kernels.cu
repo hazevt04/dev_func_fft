@@ -77,8 +77,8 @@ void calc_psds(float* __restrict__ psds, const cufftComplex* __restrict__ con_sq
 __global__
 void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* frequencies, const cufftComplex* __restrict__ samples, const int num_bits, const int num_samples) {
   
-   cookbook_fft<<<1,1>>>(frequencies, samples, num_bits);
-   calc_con_sqrs<<<1,1>>>(con_sqrs, frequencies, num_samples);
-   calc_psds<<<1,1>>>(psds, con_sqrs, num_samples, log10num_con_sqrs);    
+   cookbook_fft<<<1,64>>>(frequencies, samples, num_bits);
+   calc_con_sqrs<<<1,64>>>(con_sqrs, frequencies, num_samples);
+   calc_psds<<<1,64>>>(psds, con_sqrs, num_samples, log10num_con_sqrs);    
 
 }
