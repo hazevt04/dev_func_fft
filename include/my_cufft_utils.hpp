@@ -1,32 +1,61 @@
 #pragma once
 
+#include <cmath>
+#include <random>
+
+#include <cufft.h>
+
 #include "my_cuda_utils.hpp"
 
 /////////////////////////////
 // CUFFT Stuff
 /////////////////////////////
+void gen_cufftComplexes( cufftComplex* complexes, const int num_complexes, const float lower, const float upper ) {
+   std::random_device random_dev;
+   std::mt19937 mersenne_gen(random_dev());
+   // cufftComplex uses floats
+   std::uniform_real_distribution<float> dist(lower, upper);
+
+   for( int index = 0; index < num_complexes; ++index ) {
+      complexes[index].x = dist( mersenne_gen );
+      complexes[index].y = dist( mersenne_gen );
+   } 
+}
+
+bool cufftComplexes_are_close( const cufftComplex* lvals, const cufftComplex* rvals, const int num_vals, const float max_diff, const bool debug ) {
+   for( size_t index = 0; index < num_vals; ++index ) {
+      float abs_diff_real = std::abs( lvals[index].x - rvals[index].x );
+      float abs_diff_imag = std::abs( lvals[index].y - rvals[index].y );
+
+      if ( ( abs_diff_real > max_diff ) || ( abs_diff_imag > max_diff ) ) {
+         return false;
+      }
+   }
+   return true;
+}
 
 // Returns string based on the cuffResult value returned by a CUFFT call
 // Why doesnt CUFFT already have something like this in the API?
-//char const* get_cufft_status_msg(const cufftResult cufft_status);
-inline char const* status_strings[] = {
-   "The cuFFT operation was successful\n",
-   "cuFFT was passed an invalid plan handle\n",
-   "cuFFT failed to allocate GPU or CPU memory\n",
-   "No longer used\n",
-   "User specified an invalid pointer or parameter\n",
-   "Driver or internal cuFFT library error\n",
-   "Failed to execute an FFT on the GPU\n",
-   "The cuFFT library failed to initialize\n",
-   "User specified an invalid transform size\n",
-   "No longer used\n",
-   "Missing parameters in call\n",
-   "Execution of a plan was on different GPU than plan creation\n",
-   "Internal plan database error\n",
-   "No workspace has been provided prior to plan execution\n",
-   "Function does not implement functionality for parameters given.\n",
-   "Used in previous versions.\n",
-   "Operation is not supported for parameters given.\n" };
+inline const std::string get_cufft_status_msg(const cufftResult cufft_status) {
+  const std::string status_strings[] = {
+     "The cuFFT operation was successful\n",
+     "cuFFT was passed an invalid plan handle\n",
+     "cuFFT failed to allocate GPU or CPU memory\n",
+     "No longer used\n",
+     "User specified an invalid pointer or parameter\n",
+     "Driver or internal cuFFT library error\n",
+     "Failed to execute an FFT on the GPU\n",
+     "The cuFFT library failed to initialize\n",
+     "User specified an invalid transform size\n",
+     "No longer used\n",
+     "Missing parameters in call\n",
+     "Execution of a plan was on different GPU than plan creation\n",
+     "Internal plan database error\n",
+     "No workspace has been provided prior to plan execution\n",
+     "Function does not implement functionality for parameters given.\n",
+     "Used in previous versions.\n",
+     "Operation is not supported for parameters given.\n" 
+   };
 
    if ( cufft_status < 16 ) {
       return status_strings[cufft_status];

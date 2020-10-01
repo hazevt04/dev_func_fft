@@ -15,6 +15,7 @@
 #include <vector>
 #include <complex>
 #include <algorithm>
+#include <random>
 
 #include "VariadicToOutputStream.hpp"
 
@@ -128,12 +129,43 @@ void gen_vals(std::vector<T>& vals, const T lower, const T upper) {
 }
 
 template <class T>
-void gen_vals(T* vals, const T lower, const T upper, const int num_vals) {
+void gen_complex_vals(std::complex<T>& vals, const T lower, const T upper, const int num_vals) {
    srand(time(NULL));
    T range = upper - lower + (T)1;
    for (int index = 0; index < num_vals; index++) {
-      vals[index] = (T)(rand() % (int)range) + lower;
+      vals[index].real = (T)(rand() % (int)range) + lower;
+      vals[index].imag = (T)(rand() % (int)range) + lower;
    }
+}
+
+inline float gen_float( const float lower, const float upper ) {
+   std::random_device random_dev;
+   std::mt19937 mersenne_gen(random_dev());
+   std::uniform_real_distribution<> dist(lower, upper);
+   return dist( mersenne_gen );
+
+}
+
+// use for floats or doubles, AKA 'RealType'
+template <class RealType>
+void gen_reals( RealType* reals, const int num_reals, const float lower, const float upper ) {
+   std::random_device random_dev;
+   std::mt19937 mersenne_gen(random_dev());
+   std::uniform_real_distribution<RealType> dist(lower, upper);
+   for( int real_index = 0; real_index < num_reals; ++real_index ) {
+      reals[real_index] = dist( mersenne_gen );
+   } 
+}
+
+// use for floats or doubles, AKA 'RealType'
+template <class RealType>
+void gen_reals( std::vector<RealType>& reals, const float lower, const float upper ) {
+   std::random_device random_dev;
+   std::mt19937 mersenne_gen(random_dev());
+   std::uniform_real_distribution<RealType> dist(lower, upper);
+   for ( auto& real: reals ) {
+      real = dist( mersenne_gen );
+   } 
 }
 
 template <class T>
