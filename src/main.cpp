@@ -56,10 +56,9 @@ constexpr float max_diff = 1e-3;
 int main() {
    try {
       bool debug = true;
-      int num_samples_bits = 6;
-      int num_samples = 1u << num_samples_bits;
+      int num_samples = 8u << NUM_FFT_SIZE_BITS;
       
-      SimpleDSP simple_dsp;
+      SimpleDSP simple_dsp( num_samples, debug );
       
       simple_dsp.run();
 

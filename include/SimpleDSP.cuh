@@ -15,12 +15,11 @@ class SimpleDSP {
          frequencies( nullptr ),
          con_sqrs( nullptr ),
          psds( nullptr ),
-         num_bits(0),
          num_samples(0),
          log10num_con_sqrs(0),
          debug(false) {}
 
-      SimpleDSP( const int new_num_bits, const bool new_debug );
+      SimpleDSP( const int new_num_samples, const bool new_debug );
       
       void run();
       void operator()();
@@ -33,7 +32,6 @@ class SimpleDSP {
       cufftComplex* con_sqrs;
       float* psds;
 
-      int num_bits;
       int num_samples;
       float log10num_con_sqrs;
       bool debug;

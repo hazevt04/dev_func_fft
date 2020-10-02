@@ -1,25 +1,33 @@
 #include "SimpleDSP.cuh"
 
 SimpleDSP::SimpleDSP( 
-      const int new_num_bits,
+      const int new_num_samples,
       const bool new_debug ):
-   num_bits( new_num_bits ),
+   num_samples( new_num_samples ),
    debug( new_debug ) {
    
    try {
       cudaError_t cerror = cudaSuccess;
       // Since num_samples will always be a power of 2, just left shift
       // for multiplication.
-      size_t num_bytes = sizeof( cufftComplex ) << num_bits;
-      size_t num_float_bytes = sizeof( float ) << num_bits;
+      size_t num_bytes = sizeof( cufftComplex ) * num_samples;
+      size_t num_float_bytes = sizeof( float ) * num_samples;
       
-      num_samples = ( 1u << new_num_bits );
       log10num_con_sqrs = (float)std::log10( num_samples );
 
-      try_cuda_func_throw( cerror, cudaMallocHost( (void**)&samples, num_bytes ) );
-      try_cuda_func_throw( cerror, cudaMallocHost( (void**)&frequencies, num_bytes ) );
-      try_cuda_func_throw( cerror, cudaMallocHost( (void**)&con_sqrs, num_bytes ) );
-      try_cuda_func_throw( cerror, cudaMallocHost( (void**)&psds, num_float_bytes ) );
+      if ( debug ) {
+         std::cout << __func__ << "(): num_samples is " << num_samples << "\n"; 
+         std::cout << __func__ << "(): FFT_SIZE is " << FFT_SIZE << "\n"; 
+         std::cout << __func__ << "(): NUM_FFT_SIZE_BITS is " << NUM_FFT_SIZE_BITS << "\n"; 
+         std::cout << __func__ << "(): log10num_con_sqrs is " << log10num_con_sqrs << "\n"; 
+         std::cout << __func__ << "(): num_bytes is " << num_bytes << "\n"; 
+         std::cout << __func__ << "(): num_float_bytes is " << num_float_bytes << "\n"; 
+      }
+
+      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&samples, num_bytes ) );
+      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&frequencies, num_bytes ) );
+      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&con_sqrs, num_bytes ) );
+      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&psds, num_float_bytes ) );
 
       //gen_cufftComplexes( samples, num_samples, -100.0, 100.0 );
       read_binary_file<cufftComplex>(samples,
@@ -38,6 +46,9 @@ SimpleDSP::SimpleDSP(
       std::memset( psds, 0, num_float_bytes );
 
       try_cuda_func_throw( cerror, cudaDeviceReset() );
+
+      try_cuda_func_throw( cerror, cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeEightByte ) );
+
    } catch (std::exception& ex) {
       throw std::runtime_error{
          std::string{"SampleProcFunctor::" + std::string{__func__} + "(): " + ex.what()}};
@@ -59,13 +70,22 @@ void SimpleDSP::run() {
       cudaError_t cerror = cudaSuccess;
       Duration_ms duration_ms;
       float gpu_milliseconds = 0;
+      
+      int threads_per_block = FFT_SIZE;
+      int num_blocks = ( num_samples + threads_per_block - 1 )/threads_per_block;
 
       // Typedef for Time_Point is in my_utils.hpp
       Time_Point start = Steady_Clock::now();
 
-      simple_dsp_kernel<<<1,64>>>(psds, con_sqrs, frequencies, samples, num_bits, num_samples, log10num_con_sqrs);
+      if ( debug ) {
+         std::cout << __func__ << "(): Launching simple_dsp_kernel with " 
+            << threads_per_block << " threads per block and " << num_blocks << " blocks\n";
+      }
+
+      simple_dsp_kernel<<<num_blocks, threads_per_block>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
+      if ( debug ) std::cout << __func__ << "(): Done with simple_dsp_kernel...\n"; 
 
       duration_ms = Steady_Clock::now() - start;
       gpu_milliseconds = duration_ms.count();
@@ -107,7 +127,9 @@ void SimpleDSP::run() {
           {-443.87835664, -364.05199061},  {-72.23205842, -241.45256226}      
       };
 
-      bool all_are_close = cufftComplexes_are_close( frequencies, expected_frequencies, num_samples, max_diff, debug );
+      if ( debug ) std::cout << __func__ << "(): Comparing first " << FFT_SIZE << " (FFT Size) results with expected\n";
+
+      bool all_are_close = cufftComplexes_are_close( frequencies, expected_frequencies, FFT_SIZE, max_diff, debug );
    
    } catch (std::exception& ex) {
       throw std::runtime_error{
