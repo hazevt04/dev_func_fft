@@ -15,20 +15,9 @@ unsigned int bit_reverse(unsigned int x, int log2n) {
    return n;
 }
 
-// Complex exponential function: result = e^(val)
-// TODO: Look into optimizing the sincosf
-// Check out: https://www.drdobbs.com/cpp/a-simple-and-efficient-fft-implementatio/199500857?pgno=3
-// The template metaprogramming from there for sincos series might work here?
-__device__ __forceinline__ 
-cufftComplex complex_exponential(cufftComplex val) {
-   cufftComplex result;
-   float temp_exp = expf(val.x);
-   sincosf(val.y, &result.y, &result.x);
-   result.x *= temp_exp;
-   result.y *= temp_exp;
-   return result;
-}
 
+__device__ 
+float complex_phase_angle(const cufftComplex& val) { return atan2( cuCimagf(val), cuCrealf(val)); } 
 
 __global__
 void cookbook_fft(cufftComplex* frequencies, const cufftComplex* __restrict__ samples, const int num_bits) {

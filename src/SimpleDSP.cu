@@ -1,15 +1,3 @@
-#include <cuda_runtime>
-#include <cufft.h>
-
-
-#include "my_cuda_utils.hpp"
-#include "my_cufft_utils.hpp"
-
-#include "my_utils.hpp"
-#include "my_file_io_funcs.hpp"
-
-#include "simple_dsp_kernels.cuh"
-
 #include "SimpleDSP.cuh"
 
 SimpleDSP::SimpleDSP( 
@@ -23,7 +11,7 @@ SimpleDSP::SimpleDSP(
       // Since num_samples will always be a power of 2, just left shift
       // for multiplication.
       size_t num_bytes = sizeof( cufftComplex ) << num_bits;
-      size_t num_psd_bytes = sizeof( float ) << num_bits;
+      size_t num_float_bytes = sizeof( float ) << num_bits;
       
       num_samples = ( 1u << new_num_bits );
       log10num_con_sqrs = (float)std::log10( num_samples );
@@ -42,7 +30,7 @@ SimpleDSP::SimpleDSP(
       if ( debug ) {
          const char delim[] = " ";
          const char suffix[] = "\n";
-         print_vals<cufftComplex>(samples, "Samples from testfile: ", delim, suffix);
+         print_cufftComplexes(samples, num_samples, "Samples from testfile: ", delim, suffix);
       }
 
       std::memset( frequencies, 0, num_bytes );
@@ -69,7 +57,7 @@ void SimpleDSP::operator()() {
 void SimpleDSP::run() {
    try {
       cudaError_t cerror = cudaSuccess;
-      Duration duration_ms;
+      Duration_ms duration_ms;
       float gpu_milliseconds = 0;
 
       // Typedef for Time_Point is in my_utils.hpp
@@ -84,7 +72,42 @@ void SimpleDSP::run() {
       std::cout << "GPU processing took " << gpu_milliseconds << " milliseconds\n";
       
       float max_diff = 1e-3;
-      bool all_are_close = cufftComplexes_are_close( frequencies, expected_frequencies, num_samples, max_diff debug );
+      const cufftComplex expected_frequencies[] = {
+         {-132., -240.},          {-85.94402282, -36.09659629},
+           {-81.35411222, -0.91108112},   {84.94564024, -187.26012091},
+             {6.83723648, -27.00435032},  {-24.07475218, -150.84853419},
+           {-50.59636575, +29.90044203},   {-4.80805541, -73.01125682},
+           {-48.76955262, -69.85786438},  {-51.8021418, -59.20386129},
+           {-23.61138123, -64.37262007},  {104.73821491, -43.24309453},
+           {-16.74151197, -175.16605276},  {-27.61689685, +76.52360648},
+          {-125.05633239, +34.02646551},   {80.79678323, -48.6777785},
+           {-72., -84.},          {-45.52931596, +54.15275963},
+           {125.79232289, +56.25780044},   {57.22641, -15.69231809},
+           {-83.99643814, -80.9538002},   {-18.54727802, -155.81469514},
+            {13.03395819, -97.52749052},   {27.10334384, +5.76524363},
+           {-53.45584412, +17.74011537},  {-38.93389753, -6.62313144},
+           {-43.226213, -105.64023583},   {18.01908495, +45.23527691},
+            {-2.87496529, -25.8473992},    {55.45470935, -16.56101907},
+           {123.45218242, -103.60809949},  {-11.39947084, -14.98496058},
+            {44., +40.},          {-10.92177239, +15.03216534},
+           {-23.93041029, +3.57839443},  {115.6990709, -37.44050401},
+            {25.73130601, -43.05452418},   {54.0160334, -1.24250993},
+            {29.06745814, -36.73234781},   {36.88721264, -0.69300137},
+            {24.76955262, -98.14213562},  {-44.02764984, +42.79225072},
+            {89.15365045, -14.57386059},  {118.94062029, -10.8452387},
+           {108.29071849, -41.16699172},   {67.17722805, +66.17455353},
+           {129.83575362, -19.3857114},    {25.53325289, +72.75019775},
+            {48., +12.},          {141.75599176, +5.25427001},
+            {59.49219962, +24.95713725},   {64.05621207, +49.31729165},
+             {3.42789564, -56.9873253},   {127.79222818, -14.7950111},
+           {100.14170239, +13.37873228},   {39.96257108, +40.42186716},
+            {-2.54415588, -89.74011537},   {76.22705162, -26.95460967},
+            {57.68394378, +132.70446549},  {146.53116761, +75.81095868},
+           {343.32575878, +194.18044368},  {656.97448503, +592.2103624},
+          {-443.87835664, -364.05199061},  {-72.23205842, -241.45256226}      
+      };
+
+      bool all_are_close = cufftComplexes_are_close( frequencies, expected_frequencies, num_samples, max_diff, debug );
    
    } catch (std::exception& ex) {
       throw std::runtime_error{

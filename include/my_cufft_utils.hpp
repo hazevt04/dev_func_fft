@@ -1,40 +1,27 @@
 #pragma once
 
+// My Utility Macros for cuFFT, CUDA's FFT library
+
 #include <cmath>
 #include <random>
 
 #include <cufft.h>
-
-#include "my_cuda_utils.hpp"
+#include "my_utils.hpp"
 
 /////////////////////////////
 // CUFFT Stuff
 /////////////////////////////
-void gen_cufftComplexes( cufftComplex* complexes, const int num_complexes, const float lower, const float upper ) {
-   std::random_device random_dev;
-   std::mt19937 mersenne_gen(random_dev());
-   // cufftComplex uses floats
-   std::uniform_real_distribution<float> dist(lower, upper);
+void gen_cufftComplexes( cufftComplex* complexes, const int num_complexes, const float lower, const float upper ); 
 
-   for( int index = 0; index < num_complexes; ++index ) {
-      complexes[index].x = dist( mersenne_gen );
-      complexes[index].y = dist( mersenne_gen );
-   } 
-}
+bool cufftComplexes_are_close( const cufftComplex* lvals, const cufftComplex* rvals, 
+    const int num_vals, const float max_diff, const bool debug );
 
-bool cufftComplexes_are_close( const cufftComplex* lvals, const cufftComplex* rvals, const int num_vals, const float max_diff, const bool debug ) {
-   for( size_t index = 0; index < num_vals; ++index ) {
-      float abs_diff_real = std::abs( lvals[index].x - rvals[index].x );
-      float abs_diff_imag = std::abs( lvals[index].y - rvals[index].y );
+void print_cufftComplexes(const cufftComplex* vals,
+   const int num_vals,
+   const char* prefix,
+   const char* delim,
+   const char* suffix );
 
-      if ( ( abs_diff_real > max_diff ) || ( abs_diff_imag > max_diff ) ) {
-         return false;
-      }
-   }
-   return true;
-}
-
-// Returns string based on the cuffResult value returned by a CUFFT call
 // Why doesnt CUFFT already have something like this in the API?
 inline const std::string get_cufft_status_msg(const cufftResult cufft_status) {
   const std::string status_strings[] = {

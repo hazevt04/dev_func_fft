@@ -19,7 +19,6 @@ void write_binary_file_inner(
 
    try {
       std::ofstream ofile;
-      int val_num = 0;
       std::streampos num_file_bytes;
       ofile.open(filename, std::ios::out | std::ios::binary);
       if (ofile.is_open()) {
@@ -78,7 +77,6 @@ void read_binary_file_inner(
 
    try {
       std::ifstream ifile;
-      int val_num = 0;
       std::streampos num_file_bytes;
       ifile.open(filename, std::ios::in | std::ios::binary);
       if (ifile.is_open()) {

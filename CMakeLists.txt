@@ -1,40 +1,38 @@
-cmake_minimum_required( VERSION 3.8.0 )
+cmake_minimum_required( VERSION 2.8.0 )
 
-project( dev_func_fft LANGUAGES CXX CUDA )
+project( dev_func_fft )
 
-#set(CMAKE_CUDA_ARCHITECTURES 52 60 61 75 CACHE STRING "CUDA architectures" FORCE)
-include(my_cuda_module.cmake)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+SET(CUDA_SEPARABLE_COMPILATION ON)
+find_package(CUDA QUIET REQUIRED)
+
+set(INC_DIRS
+   "include"
+   "${CUDA_INCLUDE_DIRECTORIES}"
+)
+
+cuda_select_nvcc_arch_flags(ARCH_FLAGS Auto)
+
+LIST(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
+LIST(APPEND CUDA_NVCC_FLAGS "--ptxas-options=-v")
+LIST(APPEND CUDA_NVCC_FLAGS "--use_fast_math")
 
 set(EXEC_NAME "${CMAKE_PROJECT_NAME}")
 
 set(SRCS
    "src/my_utils.cpp"
    "src/my_file_io_funcs.cpp"
+   "src/my_cufft_utils.cpp"
    "src/simple_dsp_kernels.cu"
+   "src/SimpleDSP.cu"
    "src/main.cpp"
    )
 
-add_executable( "${EXEC_NAME}" "${SRCS}" )
-target_link_libraries( "${EXEC_NAME}" m )
+include_directories( ${INC_DIRS} )
+cuda_add_executable( ${EXEC_NAME} ${SRCS} )
+target_link_libraries( ${EXEC_NAME} ${CUDA_cudadevrt_LIBRARY} ${CUDA_cufft_LIBRARY} m )
 
-set_target_properties( ${EXEC_NAME}
-    PROPERTIES
-        CXX_STANDARD 11
-        CXX_STANDARD_REQUIRED YES
-        CXX_EXTENSIONS NO
-        CUDA_STANDARD 11
-        CUDA_STANDARD_REQUIRED YES
-        CUDA_EXTENSIONS NO
-        CUDA_SEPARABLE_COMPILATION ON
-)
-target_include_directories(${EXEC_NAME} PRIVATE
-   "include"
-)
 
-# I SHOULD NOT HAVE TO DO THIS!!! HOW THE $@#$@$ DO I SET THE MICROARCH OTHERWISE?!!!
-# Come on CMake!
-#find_library(CUDA REQUIRED)
-#CUDA_SELECT_NVCC_ARCH_FLAGS(ARCH_FLAGS Auto)
-#LIST(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
-
-#target_compile_options(${EXEC_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-gencode arch=compute_72,code=sm_72>)
