@@ -7,12 +7,13 @@
 // https://www.oreilly.com/library/view/c-cookbook/0596007612/ch11s18.html#cplusplusckbk-CHP-11-EX-33
 __device__ 
 unsigned int bit_reverse(unsigned int x, int log2n) {
-   int n = 0;
+   unsigned int n = 0;
    for (int i = 0; i < log2n; i++) {
       n <<= 1;
       n |= (x & 1);
       x >>= 1;
    }
+   printf("Bit reverse: x = %u, n = %u\n", x, n );
    return n;
 }
 
@@ -27,14 +28,17 @@ void cookbook_fft64(cufftComplex* frequencies, const cufftComplex* __restrict__ 
 
    const cufftComplex J = make_cuComplex(0,-1);
 
-   if ( thread_index == 0 ) printf( "cookbook_fft64- Here1\n" );
+   printf( "cookbook_fft64- Here1- thread_index is %d\n", thread_index );
 
    __shared__ cufftComplex sh_samples[FFT_SIZE];
-   int sh_index = bit_reverse(thread_index, NUM_FFT_SIZE_BITS);
-   sh_samples[thread_index] = samples[sh_index];
+
+   int sh_index = (int)bit_reverse(thread_index, NUM_FFT_SIZE_BITS);
+   printf( "cookbook_fft64- Here1- sh_index is %d\n", sh_index );
+   sh_samples[thread_index].x = samples[sh_index].x;
+   sh_samples[thread_index].y = samples[sh_index].y;
    __syncthreads();
    
-   if ( thread_index == 0 ) printf( "cookbook_fft64- Here2\n" );
+   printf( "cookbook_fft64- Here2\n" );
       
    for (int s = 1; s <= NUM_FFT_SIZE_BITS; ++s) {
       if ( thread_index == 0 ) printf( "cookbook_fft64- In outer for loop-Here3\n" );
@@ -94,13 +98,19 @@ void calc_psds(float* __restrict__ psds, const cufftComplex* __restrict__ con_sq
 __global__
 void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* frequencies, const cufftComplex* __restrict__ samples, const int num_samples, const float log10num_con_sqrs) {
   
-   if( threadIdx.x == 0 ) { 
+   //if( threadIdx.x == 0 ) { 
+      printf( "blockDim.x is %d\n", blockDim.x );
+      printf( "blockIdx.x is %d\n", blockIdx.x );
+      printf( "FFT_SIZE is %d\n", FFT_SIZE );
+      printf( "NUM_FFT_SIZE_BITS is %d\n", NUM_FFT_SIZE_BITS );
       printf( "simple_dsp_kernel Here1\n");
+
+   if( threadIdx.x == 0 ) { 
       cookbook_fft64<<<1,FFT_SIZE>>>(frequencies, samples, num_samples);
    }
-   cudaDeviceSynchronize();
-   __syncthreads();
-   if( threadIdx.x == 0 ) printf( "simple_dsp_kernel Here2\n");
+   // cudaDeviceSynchronize();
+   // __syncthreads();
+   // if( threadIdx.x == 0 ) printf( "simple_dsp_kernel Here2\n");
    
    //calc_con_sqrs<<<1,64>>>(con_sqrs, frequencies, num_samples);
    //calc_psds<<<1,64>>>(psds, con_sqrs, num_samples, log10num_con_sqrs);    

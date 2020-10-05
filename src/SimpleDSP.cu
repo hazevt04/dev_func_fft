@@ -47,7 +47,7 @@ SimpleDSP::SimpleDSP(
 
       try_cuda_func_throw( cerror, cudaDeviceReset() );
 
-      try_cuda_func_throw( cerror, cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeEightByte ) );
+      //try_cuda_func_throw( cerror, cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeEightByte ) );
 
    } catch (std::exception& ex) {
       throw std::runtime_error{
@@ -82,7 +82,9 @@ void SimpleDSP::run() {
             << threads_per_block << " threads per block and " << num_blocks << " blocks\n";
       }
 
-      simple_dsp_kernel<<<num_blocks, threads_per_block>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
+      //simple_dsp_kernel<<<num_blocks, threads_per_block>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
+      simple_dsp_kernel<<<1, FFT_SIZE>>>(psds, con_sqrs, frequencies, samples, FFT_SIZE, log10num_con_sqrs);
+      //simple_dsp_kernel<<<1, num_samples>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
       if ( debug ) std::cout << __func__ << "(): Done with simple_dsp_kernel...\n"; 
