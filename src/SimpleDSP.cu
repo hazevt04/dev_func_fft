@@ -71,8 +71,17 @@ void SimpleDSP::run() {
       Duration_ms duration_ms;
       float gpu_milliseconds = 0;
       
-      int threads_per_block = FFT_SIZE;
-      int num_blocks = ( num_samples + threads_per_block - 1 )/threads_per_block;
+      //int threads_per_block = FFT_SIZE;
+      //int num_blocks = ( num_samples + threads_per_block - 1 )/threads_per_block;
+
+      int threads_per_block = 0;
+      int min_num_blocks = 0;
+      int num_blocks = 0;
+
+      try_cuda_func_throw( cerror, cudaOccupancyMaxPotentialBlockSize( &min_num_blocks, &threads_per_block, 
+                                      simple_dsp_kernel, 0, 0) );
+
+      num_blocks = (num_samples + threads_per_block - 1)/threads_per_block;
 
       // Typedef for Time_Point is in my_utils.hpp
       Time_Point start = Steady_Clock::now();
@@ -83,7 +92,7 @@ void SimpleDSP::run() {
       }
 
       //simple_dsp_kernel<<<num_blocks, threads_per_block>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
-      simple_dsp_kernel<<<1, FFT_SIZE>>>(psds, con_sqrs, frequencies, samples, FFT_SIZE, log10num_con_sqrs);
+      simple_dsp_kernel<<<num_blocks, threads_per_block>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
       //simple_dsp_kernel<<<1, num_samples>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );

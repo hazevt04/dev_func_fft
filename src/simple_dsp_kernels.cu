@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <cuComplex.h>
+#include <cooperative_groups.h>
 
 #include "simple_dsp_kernels.cuh"
+
 
 // FFT Implementation from C++ Cookbook:
 // https://www.oreilly.com/library/view/c-cookbook/0596007612/ch11s18.html#cplusplusckbk-CHP-11-EX-33
@@ -19,49 +21,9 @@ unsigned int bit_reverse(unsigned int x, int log2n) {
 
 
 __device__ 
-float complex_phase_angle(const cufftComplex& val) { return atan2( cuCimagf(val), cuCrealf(val)); } 
-
-
-__global__
-void cookbook_fft64(cufftComplex* frequencies, const cufftComplex* __restrict__ samples, const int num_samples) {
-   int thread_index = threadIdx.x;
-
-   const cufftComplex J = make_cuComplex(0,-1);
-
-   printf( "cookbook_fft64- Here1- thread_index is %d\n", thread_index );
-
-   __shared__ cufftComplex sh_samples[FFT_SIZE];
-
-   int sh_index = (int)bit_reverse(thread_index, NUM_FFT_SIZE_BITS);
-   printf( "cookbook_fft64- Here1- sh_index is %d\n", sh_index );
-   sh_samples[thread_index].x = samples[sh_index].x;
-   sh_samples[thread_index].y = samples[sh_index].y;
-   __syncthreads();
-   
-   printf( "cookbook_fft64- Here2\n" );
-      
-   for (int s = 1; s <= NUM_FFT_SIZE_BITS; ++s) {
-      if ( thread_index == 0 ) printf( "cookbook_fft64- In outer for loop-Here3\n" );
-      unsigned int m = 1 << s;
-      unsigned int m2 = m >> 1;
-      cufftComplex w = make_cuComplex(1, 0);
-      cufftComplex wm = complex_exponential( cuCmulf( J, make_cuComplex( (PI / m2), 0 ) ) );
-      for (unsigned int j = 0; j != m2; ++j) {
-         if ( thread_index == 0 ) printf( "cookbook_fft64- In inner for loop-Here4\n" );
-         for (int k = j; k < FFT_SIZE; k += m) {
-            cufftComplex t = cuCmulf( w, sh_samples[k + m2] );
-            cufftComplex u = make_cuComplex( sh_samples[k].x, sh_samples[k].y );
-            sh_samples[k] = cuCaddf( u, t );
-            sh_samples[k + m2] = cuCsubf( u, t );
-         }
-         w = cuCmulf( w, wm );
-      }
-   } // end of for (int s = 1; s <= log2n; ++s) {   
-
-   __syncthreads();
-   if ( thread_index == 0 ) printf( "cookbook_fft64- Here5\n" );
-   frequencies[thread_index] = sh_samples[thread_index];
-}
+float complex_phase_angle(const cufftComplex& val) { 
+   return atan2( cuCimagf(val), cuCrealf(val)); 
+} 
 
 
 __global__
@@ -94,23 +56,62 @@ void calc_psds(float* __restrict__ psds, const cufftComplex* __restrict__ con_sq
 
 }
 
+namespace cg = cooperative_groups;  
 
 __global__
-void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* frequencies, const cufftComplex* __restrict__ samples, const int num_samples, const float log10num_con_sqrs) {
+void cookbook_fft64(cufftComplex* frequencies, const cufftComplex* __restrict__ samples, const int num_samples) {
+   auto grid = cg::this_grid();
+
+   for (int index = grid.thread_rank(); index < num_samples; index += grid.size() ) {
+      const cufftComplex J = make_cuComplex(0,-1);
+
+      int br_index = (int)bit_reverse(index, NUM_FFT_SIZE_BITS);
+      printf( "cookbook_fft64- Here1- br_index is %d\n", br_index );
+      frequencies[index].x = samples[br_index].x;
+      frequencies[index].y = samples[br_index].y;
+      // Need sync here
+      
+      printf( "cookbook_fft64- Here2\n" );
+         
+      for (int s = 1; s <= NUM_FFT_SIZE_BITS; ++s) {
+         if ( index == 0 ) printf( "cookbook_fft64- In outer for loop-Here3\n" );
+         unsigned int m = 1 << s;
+         unsigned int m2 = m >> 1;
+         cufftComplex w = make_cuComplex(1, 0);
+         cufftComplex wm = complex_exponential( cuCmulf( J, make_cuComplex( (PI / m2), 0 ) ) );
+         for (unsigned int j = 0; j != m2; ++j) {
+            if ( index == 0 ) printf( "cookbook_fft64- In inner for loop-Here4\n" );
+            for (int k = j; k < FFT_SIZE; k += m) {
+               cufftComplex t = cuCmulf( w, frequencies[k + m2] );
+               cufftComplex u = make_cuComplex( frequencies[k].x, frequencies[k].y );
+               frequencies[k] = cuCaddf( u, t );
+               frequencies[k + m2] = cuCsubf( u, t );
+            }
+            w = cuCmulf( w, wm );
+            grid.sync();
+         }
+         grid.sync();
+      } // end of for (int s = 1; s <= log2n; ++s) {   
+      grid.sync();
+   } // end of for (int index = grid.thread_rank(); index < srcSize; index += grid.size() ) {
+}
+
+
+__global__
+void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* frequencies, 
+      const cufftComplex* __restrict__ samples, const int num_samples, const float log10num_con_sqrs) {
   
-   //if( threadIdx.x == 0 ) { 
+   auto tblock = cg::this_thread_block();
+   if( tblock.thread_rank() == 0 ) { 
       printf( "blockDim.x is %d\n", blockDim.x );
       printf( "blockIdx.x is %d\n", blockIdx.x );
       printf( "FFT_SIZE is %d\n", FFT_SIZE );
       printf( "NUM_FFT_SIZE_BITS is %d\n", NUM_FFT_SIZE_BITS );
       printf( "simple_dsp_kernel Here1\n");
 
-   if( threadIdx.x == 0 ) { 
-      cookbook_fft64<<<1,FFT_SIZE>>>(frequencies, samples, num_samples);
+      cookbook_fft64<<<1,1>>>(frequencies, samples, num_samples);
    }
-   // cudaDeviceSynchronize();
-   // __syncthreads();
-   // if( threadIdx.x == 0 ) printf( "simple_dsp_kernel Here2\n");
+   tblock.sync();
    
    //calc_con_sqrs<<<1,64>>>(con_sqrs, frequencies, num_samples);
    //calc_psds<<<1,64>>>(psds, con_sqrs, num_samples, log10num_con_sqrs);    
