@@ -33,8 +33,6 @@ cufftComplex complex_exponential(cufftComplex val) {
 __device__ 
 float complex_phase_angle(const cufftComplex& val);
 
-__global__ 
-void cookbook_fft64(cufftComplex* frequencies, const cufftComplex* __restrict__ samples, const int num_samples);
 
 __global__
 void calc_con_sqrs(cufftComplex* __restrict__ con_sqrs, const cufftComplex* __restrict__ frequencies, const int num_frequencies);
@@ -42,6 +40,8 @@ void calc_con_sqrs(cufftComplex* __restrict__ con_sqrs, const cufftComplex* __re
 __global__
 void calc_psds(float* __restrict__ psds, const cufftComplex* __restrict__ con_sqrs, const int num_con_sqrs, const float log10num_con_sqrs);
 
+__device__ 
+void cookbook_fft64(cufftComplex* frequencies, const cufftComplex* __restrict__ samples, const int num_samples);
+
 __global__
-void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* frequencies, const cufftComplex* __restrict__ samples,  
-      const int num_samples, const float log10num_con_sqrs);
+void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* frequencies, const cufftComplex* __restrict__ samples,  const int num_samples, const float log10num_con_sqrs);

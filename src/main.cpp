@@ -5,6 +5,8 @@
 
 #include "SimpleDSP.cuh"
 
+//#include "dammit.cuh"
+
 // 64 Input samples
 // [ 28.-20.j  16.-28.j   8.-16.j   8.-16.j  12.-12.j  -8.-20.j  -8.-28.j
   // -4.-16.j -32. -8.j -24. -8.j -28. -8.j -24. +8.j -24. +8.j  -4. +4.j
@@ -57,10 +59,11 @@ int main() {
    try {
       bool debug = true;
       int num_samples = 4096;
-      
+
       SimpleDSP simple_dsp( num_samples, debug );
-      
+
       simple_dsp.run();
+      //whatthehell();
 
       return EXIT_SUCCESS;
 

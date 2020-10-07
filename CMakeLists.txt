@@ -29,6 +29,7 @@ set(SRCS
    "src/my_cufft_utils.cpp"
    "src/simple_dsp_kernels.cu"
    "src/SimpleDSP.cu"
+   #"src/dammit.cu"
    "src/main.cpp"
    )
 
