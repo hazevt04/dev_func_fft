@@ -81,6 +81,7 @@ void SimpleDSP::run() {
       
       int threads_per_block = FFT_SIZE;
       int num_blocks = (num_samples + threads_per_block -1)/threads_per_block;
+      size_t num_shared_bytes = num_blocks * FFT_SIZE * sizeof( cufftComplex );
 
       dout << __func__ << "(): threads_per_block = " << threads_per_block << "\n";
       dout << __func__ << "(): num_blocks = " << num_blocks << "\n";
@@ -89,8 +90,7 @@ void SimpleDSP::run() {
       Time_Point start = Steady_Clock::now();
 
       // Launch the kernel
-      simple_dsp_kernel<<<num_blocks, threads_per_block>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
-      //cookbook_fft64<<<num_blocks, threads_per_block>>>(frequencies, samples, num_samples);
+      simple_dsp_kernel<<<num_blocks, threads_per_block, num_shared_bytes>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
       dout << __func__ << "(): Done with simple_dsp_kernel...\n"; 
