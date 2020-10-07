@@ -24,38 +24,31 @@ float complex_phase_angle(const cufftComplex& val) {
    return atan2( cuCimagf(val), cuCrealf(val)); 
 } 
 
+namespace cg = cooperative_groups;  
 
-__global__
+__device__
 void calc_con_sqrs(cufftComplex* __restrict__ con_sqrs, const cufftComplex* __restrict__ frequencies, const int num_frequencies) {
 
-   //Assuming one stream
-   int global_index = ( blockIdx.x * blockDim.x ) + threadIdx.x;
-   // stride is set to the total number of threads in the grid
-   int stride = blockDim.x * gridDim.x;
+   auto group = cg::this_thread_block();
    
-   for (int index = global_index; index < num_frequencies; index+=stride) {   
+   for (int index = group.thread_rank(); index < num_frequencies; index += group.size() ) {
       cufftComplex conj = cuConjf(frequencies[index]);
       con_sqrs[index] = cuCmulf( conj, conj );
    }
 }
 
 
-__global__ 
+__device__ 
 void calc_psds(float* __restrict__ psds, const cufftComplex* __restrict__ con_sqrs, const int num_con_sqrs, const float log10num_con_sqrs) {
    
-   // Assuming one stream
-   int global_index = ( blockIdx.x * blockDim.x ) + threadIdx.x;
-   // stride is set to the total number of threads in the grid
-   int stride = blockDim.x * gridDim.x;
+   auto group = cg::this_thread_block();
    
-   for (int index = global_index; index < num_con_sqrs; index+=stride) {   
+   for (int index = group.thread_rank(); index < num_con_sqrs; index += group.size() ) {
       psds[index] = 10*__log10f( cuCabsf(con_sqrs[index]) ) - log10num_con_sqrs;
-      
    }
 
 }
 
-namespace cg = cooperative_groups;  
 
 __device__
 void cookbook_fft64(cufftComplex* frequencies, cufftComplex* __restrict__ sh_samples, const int num_samples) {
@@ -103,7 +96,7 @@ void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_
 
    sh_samples[thread_index] = samples[thread_index];
 
-   //if ( group.thread_rank() == 0 ) {
    cookbook_fft64( frequencies, sh_samples, num_samples );
-   //}
+   calc_con_sqrs( con_sqrs, frequencies, num_samples );
+   calc_psds( psds, con_sqrs, num_samples, log10num_con_sqrs);
 }

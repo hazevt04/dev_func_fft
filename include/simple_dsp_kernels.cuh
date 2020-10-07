@@ -34,10 +34,10 @@ __device__
 float complex_phase_angle(const cufftComplex& val);
 
 
-__global__
+__device__
 void calc_con_sqrs(cufftComplex* __restrict__ con_sqrs, const cufftComplex* __restrict__ frequencies, const int num_frequencies);
 
-__global__
+__device__
 void calc_psds(float* __restrict__ psds, const cufftComplex* __restrict__ con_sqrs, const int num_con_sqrs, const float log10num_con_sqrs);
 
 __device__ 
