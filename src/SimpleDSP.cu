@@ -149,13 +149,13 @@ void SimpleDSP::run() {
       }
       std::cout << "All Frequencies computed on the GPU were close to the expected.\n"; 
       
-      if ( debug ) {
-         const char space[] = " ";
-         const char comma_space[] = ", ";
-         const char newline[] = "\n";
-         print_cufftComplexes(con_sqrs, num_samples, "Conjugate Squares from GPU: ", space, newline);
-         print_vals<float>(psds, num_samples, "PSDs from GPU: ", comma_space, newline);
-      }
+      /*if ( debug ) {*/
+         /*const char space[] = " ";*/
+         /*const char comma_space[] = ", ";*/
+         /*const char newline[] = "\n";*/
+         /*print_cufftComplexes(con_sqrs, num_samples, "Conjugate Squares from GPU: ", space, newline);*/
+         /*print_vals<float>(psds, num_samples, "PSDs from GPU: ", comma_space, newline);*/
+      /*}*/
 
 
    } catch (std::exception& ex) {
