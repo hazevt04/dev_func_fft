@@ -97,6 +97,6 @@ void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_
    sh_samples[thread_index] = samples[thread_index];
 
    cookbook_fft64( frequencies, sh_samples, num_samples );
-   calc_con_sqrs( con_sqrs, frequencies, num_samples );
-   calc_psds( psds, con_sqrs, num_samples, log10num_con_sqrs);
+   /*calc_con_sqrs( con_sqrs, frequencies, num_samples );*/
+   /*calc_psds( psds, con_sqrs, num_samples, log10num_con_sqrs);*/
 }
