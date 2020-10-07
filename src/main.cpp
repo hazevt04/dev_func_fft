@@ -5,7 +5,6 @@
 
 #include "SimpleDSP.cuh"
 
-//#include "dammit.cuh"
 
 // 64 Input samples
 // [ 28.-20.j  16.-28.j   8.-16.j   8.-16.j  12.-12.j  -8.-20.j  -8.-28.j
@@ -58,12 +57,11 @@ constexpr float max_diff = 1e-3;
 int main() {
    try {
       bool debug = true;
-      int num_samples = 4096;
+      int num_samples = 64;
 
       SimpleDSP simple_dsp( num_samples, debug );
 
       simple_dsp.run();
-      //whatthehell();
 
       return EXIT_SUCCESS;
 

@@ -15,14 +15,13 @@ SimpleDSP::SimpleDSP(
       
       log10num_con_sqrs = (float)std::log10( num_samples );
 
-      if ( debug ) {
-         std::cout << __func__ << "(): num_samples is " << num_samples << "\n"; 
-         std::cout << __func__ << "(): FFT_SIZE is " << FFT_SIZE << "\n"; 
-         std::cout << __func__ << "(): NUM_FFT_SIZE_BITS is " << NUM_FFT_SIZE_BITS << "\n"; 
-         std::cout << __func__ << "(): log10num_con_sqrs is " << log10num_con_sqrs << "\n"; 
-         std::cout << __func__ << "(): num_bytes is " << num_bytes << "\n"; 
-         std::cout << __func__ << "(): num_float_bytes is " << num_float_bytes << "\n"; 
-      }
+      dout << __func__ << "(): num_samples is " << num_samples << "\n"; 
+      dout << __func__ << "(): FFT_SIZE is " << FFT_SIZE << "\n"; 
+      dout << __func__ << "(): NUM_FFT_SIZE_BITS is " << NUM_FFT_SIZE_BITS << "\n"; 
+      dout << __func__ << "(): log10num_con_sqrs is " << log10num_con_sqrs << "\n"; 
+      dout << __func__ << "(): num_bytes is " << num_bytes << "\n"; 
+      dout << __func__ << "(): num_float_bytes is " << num_float_bytes << "\n"; 
+
       try_cuda_func_throw( cerror, cudaSetDevice(0) );
       
       try_cuda_func_throw( cerror, cudaDeviceReset() );
@@ -56,7 +55,6 @@ SimpleDSP::SimpleDSP(
          psds[index] = 0;
       } 
 
-
       //try_cuda_func_throw( cerror, cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeEightByte ) );
 
    } catch (std::exception& ex) {
@@ -81,13 +79,21 @@ void SimpleDSP::run() {
       Duration_ms duration_ms;
       float gpu_milliseconds = 0;
       
+      int threads_per_block = FFT_SIZE;
+      int num_blocks = (num_samples + threads_per_block -1)/threads_per_block;
+
+      dout << __func__ << "(): threads_per_block = " << threads_per_block << "\n";
+      dout << __func__ << "(): num_blocks = " << num_blocks << "\n";
+      
       // Typedef for Time_Point is in my_utils.hpp
       Time_Point start = Steady_Clock::now();
 
-      simple_dsp_kernel<<<4, num_samples/4>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
+      // Launch the kernel
+      simple_dsp_kernel<<<num_blocks, threads_per_block>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
+      //cookbook_fft64<<<num_blocks, threads_per_block>>>(frequencies, samples, num_samples);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
-      if ( debug ) std::cout << __func__ << "(): Done with simple_dsp_kernel...\n"; 
+      dout << __func__ << "(): Done with simple_dsp_kernel...\n"; 
 
       duration_ms = Steady_Clock::now() - start;
       gpu_milliseconds = duration_ms.count();
