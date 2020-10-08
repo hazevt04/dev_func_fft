@@ -57,7 +57,7 @@ constexpr float max_diff = 1e-3;
 int main() {
    try {
       bool debug = true;
-      int num_samples = 64;
+      int num_samples = NUM_CHUNKS * NUM_CHUNK_BLOCKS * FFT_SIZE;
 
       SimpleDSP simple_dsp( num_samples, debug );
 
