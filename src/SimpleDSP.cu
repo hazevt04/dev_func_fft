@@ -22,14 +22,25 @@ SimpleDSP::SimpleDSP(
       dout << __func__ << "(): num_bytes is " << num_bytes << "\n"; 
       dout << __func__ << "(): num_float_bytes is " << num_float_bytes << "\n"; 
 
-      try_cuda_func_throw( cerror, cudaSetDevice(0) );
+      int device = 0;
+      try_cuda_func_throw( cerror, cudaGetDevice(&device) );
       
       try_cuda_func_throw( cerror, cudaDeviceReset() );
-
-      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&samples, num_bytes * 2 ) );
-      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&frequencies, num_bytes ) );
-      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&con_sqrs, num_bytes ) );
-      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&psds, num_float_bytes ) );
+      
+      // CUDA will yield its thread when waiting for results from the GPU
+      // Increases performance of CPU threads working in parallel with the GPU
+      // but also increases latency when waiting for the GPU
+      try_cuda_func_throw( cerror, cudaSetDeviceFlags( cudaDeviceScheduleYield ) );
+      
+      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&samples, num_bytes, cudaHostAllocWriteCombined ) );
+      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&frequencies, num_bytes, cudaHostAllocMapped ) );
+      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&con_sqrs, num_bytes, cudaHostAllocMapped ) );
+      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&psds, num_float_bytes, cudaHostAllocMapped ) );
+   
+      try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_samples, (void*)samples, 0 ) );
+      try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_frequencies, (void*)frequencies, 0 ) );
+      try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_con_sqrs, (void*)con_sqrs, 0 ) );
+      try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_psds, (void*)psds, 0 ) );
 
       //gen_cufftComplexes( samples, num_samples, -100.0, 100.0 );
       read_binary_file<cufftComplex>(samples,
@@ -89,8 +100,7 @@ void SimpleDSP::run() {
       Time_Point start = Steady_Clock::now();
 
       // Launch the kernel
-      simple_dsp_kernel<<<num_blocks, threads_per_block>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
-      //cookbook_fft64<<<num_blocks, threads_per_block>>>(frequencies, samples, num_samples);
+      simple_dsp_kernel<<<num_blocks, threads_per_block>>>(d_psds, d_con_sqrs, d_frequencies, d_samples, num_samples, log10num_con_sqrs);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
       dout << __func__ << "(): Done with simple_dsp_kernel...\n"; 
@@ -155,12 +165,12 @@ void SimpleDSP::run() {
 
 
 SimpleDSP::~SimpleDSP() {
-   if (samples) cudaFree(samples);
+   if (samples) cudaFreeHost(samples);
 
-   if (frequencies) cudaFree(frequencies);
+   if (frequencies) cudaFreeHost(frequencies);
 
-   if (con_sqrs) cudaFree(con_sqrs);
+   if (con_sqrs) cudaFreeHost(con_sqrs);
 
-   if (psds) cudaFree(psds);
+   if (psds) cudaFreeHost(psds);
    
 }
