@@ -90,12 +90,11 @@ void cookbook_fft64(cufftComplex* frequencies, const cufftComplex* __restrict__ 
 } // end of cookbook_fft64
 
 
-__global__
-void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* frequencies, 
-      const cufftComplex* __restrict__ samples, const int num_samples, const float log10num_con_sqrs) {
+/*__global__*/
+/*void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* frequencies, */
+      /*const cufftComplex* __restrict__ samples, const int num_samples, const float log10num_con_sqrs) {*/
   
-   auto group = cg::this_thread_block();
-   if ( group.thread_rank() == 0 ) {
-      cookbook_fft64<<<1, group.size()>>>( frequencies, samples, num_samples );
-   }
-}
+   /*auto group = cg::this_thread_block();*/
+   
+   /*cookbook_fft64<<<1, group.size()>>>( frequencies, samples, num_samples );*/
+/*}*/
