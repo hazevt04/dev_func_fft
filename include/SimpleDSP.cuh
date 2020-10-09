@@ -7,6 +7,8 @@
 
 #include "my_file_io_funcs.hpp"
 
+#include "cpu_cookbook_fft64.hpp"
+
 #include "simple_dsp_kernels.cuh"
 
 
@@ -50,6 +52,9 @@ class SimpleDSP {
       cufftComplex* frequencies;
       cufftComplex* con_sqrs;
       float* psds;
+      
+      std::complex<float>* cpu_samples;
+      std::complex<float>* cpu_frequencies;
       
       cufftComplex* d_samples;
       cufftComplex* d_frequencies;

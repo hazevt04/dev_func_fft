@@ -48,15 +48,19 @@ SimpleDSP::SimpleDSP(
          print_cufftComplexes(samples, num_samples, "Samples from testfile: ", delim, suffix);
       }
 
+      cpu_samples = new std::complex<float>[num_samples];
+      cpu_frequencies = new std::complex<float>[num_samples];
+
       for( int index = 0; index < num_samples; ++index ) {
+         cpu_samples[index] = std::complex<float>{samples[index].x, samples[index].y};
+         cpu_frequencies[index] = std::complex<float>{0,0};
+
          frequencies[index].x = 0;
          frequencies[index].y = 0;
-      } 
-      for( int index = 0; index < num_samples; ++index ) {
+         
          con_sqrs[index].x = 0;
          con_sqrs[index].y = 0;
-      } 
-      for( int index = 0; index < num_samples; ++index ) {
+         
          psds[index] = 0;
       } 
 
@@ -95,9 +99,13 @@ void SimpleDSP::run() {
       // Typedef for Time_Point is in my_utils.hpp
       Time_Point start = Steady_Clock::now();
 
-      dout << __func__ << "(): Launching simple_dsp_kernel()...\n";
+      dout << __func__ << "(): Launching simple_dsp_kernel()...\n\n";
       // Launch the kernel
       simple_dsp_kernel<<<num_blocks, threads_per_block, num_shared_bytes>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
+
+      // Occupy the CPU at the same time...
+      dout << __func__ << "(): Calling the CPU fft\n\n";
+      fft( cpu_samples, cpu_frequencies, num_samples );
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
       dout << __func__ << "(): Done with simple_dsp_kernel...\n\n"; 
