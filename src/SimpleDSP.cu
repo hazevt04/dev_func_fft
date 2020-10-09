@@ -37,21 +37,26 @@ SimpleDSP::SimpleDSP(
       try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&psds, num_float_bytes ) );
 
       //gen_cufftComplexes( samples, num_samples, -100.0, 100.0 );
-      read_binary_file<cufftComplex>(samples,
-         "../testdataBPSKcomplex.bin",
-         num_samples,
-         debug );
+      /*read_binary_file<cufftComplex>(samples,*/
+         /*"../testdataBPSKcomplex.bin",*/
+         /*num_samples,*/
+         /*debug );*/
+      
+      /*if ( debug ) {*/
+      /*   const char delim[] = " ";*/
+      /*   const char suffix[] = "\n";*/
+      /*   print_cufftComplexes(samples, num_samples, "Samples from testfile: ", delim, suffix);*/
+      /*}*/
 
-      if ( debug ) {
-         const char delim[] = " ";
-         const char suffix[] = "\n";
-         print_cufftComplexes(samples, num_samples, "Samples from testfile: ", delim, suffix);
-      }
+      cufftComplex tsamples[] = { {28, -20}, {16, -28}, {8, -16}, {8, -16}, {12, -12}, {-8, -20}, {-8, -28}, {-4, -16}, {-32, -8}, {-24, -8}, {-28, -8}, {-24, 8}, {-24, 8}, {-4, 4}, {-16, 20}, {-12, 8}, {-8, -4}, {12, 4}, {20, 16}, {-4, 12}, {8, 8}, {20, -4}, {16, 0}, {8, -4}, {20, -8}, {12, -20}, {12, -12}, {-4, -28}, {12, -12}, {4, -16}, {-4, -8}, {-12, 0}, {-24, -20}, {-24, -4}, {-16, 4}, {-16, 4}, {-28, 0}, {-24, 0}, {-12, 0}, {-8, 8}, {-4, 12}, {-12, 20}, {4, 12}, {12, 16}, {16, 20}, {20, 20}, {28, 0}, {32, -8}, {16, -4}, {16, -16}, {20, 4}, {8, -16}, {16, -28}, {12, -20}, {-8, -8}, {-12, -28}, {-20, -12}, {-20, -16}, {-16, -12}, {-24, -4}, {-16, 12}, {-16, 4}, {-16, 4}, {-16, 24} 
+      };
 
       cpu_samples = new std::complex<float>[num_samples];
       cpu_frequencies = new std::complex<float>[num_samples];
 
       for( int index = 0; index < num_samples; ++index ) {
+         samples[index] = tsamples[index];
+
          cpu_samples[index] = std::complex<float>{samples[index].x, samples[index].y};
          cpu_frequencies[index] = std::complex<float>{0,0};
 
@@ -63,6 +68,11 @@ SimpleDSP::SimpleDSP(
          
          psds[index] = 0;
       } 
+      if ( debug ) {
+         const char delim[] = " ";
+         const char suffix[] = "\n";
+         print_cufftComplexes(samples, num_samples, "Samples: ", delim, suffix);
+      }
 
       //try_cuda_func_throw( cerror, cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeEightByte ) );
 
@@ -104,8 +114,8 @@ void SimpleDSP::run() {
       simple_dsp_kernel<<<num_blocks, threads_per_block, num_shared_bytes>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
 
       // Occupy the CPU at the same time...
-      dout << __func__ << "(): Calling the CPU fft\n\n";
-      fft( cpu_samples, cpu_frequencies, num_samples );
+      //dout << __func__ << "(): Calling the CPU fft\n\n";
+      //fft( cpu_samples, cpu_frequencies, num_samples );
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
       dout << __func__ << "(): Done with simple_dsp_kernel...\n\n"; 
