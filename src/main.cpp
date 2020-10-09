@@ -57,10 +57,9 @@ constexpr float max_diff = 1e-3;
 int main() {
    try {
       bool debug = true;
-      int num_samples = FFT_SIZE;
+      int num_samples = 8 * FFT_SIZE;
 
       SimpleDSP simple_dsp( num_samples, debug );
-
       simple_dsp.run();
 
       return EXIT_SUCCESS;

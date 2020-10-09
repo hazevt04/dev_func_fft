@@ -64,7 +64,7 @@ SimpleDSP::SimpleDSP(
 
    } catch (std::exception& ex) {
       throw std::runtime_error{
-         std::string{"SampleProcFunctor::" + std::string{__func__} + "(): " + ex.what()}};
+         std::string{"SimpleDSP::" + std::string{__func__} + "(): " + ex.what()}};
    }
 }
 
@@ -73,7 +73,7 @@ void SimpleDSP::operator()() {
    try {
       run();
    } catch (std::exception& ex) {
-      std::cout << "ERROR: SampleProcFunctor::" << __func__ << "(): " << ex.what() << " Exiting.\n";
+      std::cout << "ERROR: SimpleDSP::" << __func__ << "(): " << ex.what() << " Exiting.\n";
    }
 }
 
@@ -88,21 +88,23 @@ void SimpleDSP::run() {
       int num_blocks = (num_samples + threads_per_block -1)/threads_per_block;
       size_t num_shared_bytes = num_blocks * FFT_SIZE * sizeof( cufftComplex );
 
+      dout << __func__ << "(): num_samples = " << num_samples << "\n";
       dout << __func__ << "(): threads_per_block = " << threads_per_block << "\n";
-      dout << __func__ << "(): num_blocks = " << num_blocks << "\n";
+      dout << __func__ << "(): num_blocks = " << num_blocks << "\n\n";
       
       // Typedef for Time_Point is in my_utils.hpp
       Time_Point start = Steady_Clock::now();
 
+      dout << __func__ << "(): Launching simple_dsp_kernel()...\n";
       // Launch the kernel
       simple_dsp_kernel<<<num_blocks, threads_per_block, num_shared_bytes>>>(psds, con_sqrs, frequencies, samples, num_samples, log10num_con_sqrs);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
-      dout << __func__ << "(): Done with simple_dsp_kernel...\n"; 
+      dout << __func__ << "(): Done with simple_dsp_kernel...\n\n"; 
 
       duration_ms = Steady_Clock::now() - start;
       gpu_milliseconds = duration_ms.count();
-      std::cout << "GPU processing took " << gpu_milliseconds << " milliseconds\n";
+      std::cout << "GPU processing took " << gpu_milliseconds << " milliseconds\n\n";
       
       if ( debug ) {
          const char delim[] = " ";
@@ -146,13 +148,13 @@ void SimpleDSP::run() {
           {-443.87835664, -364.05199061},  {-72.23205842, -241.45256226}
       };
 
-      dout << __func__ << "(): Comparing first " << FFT_SIZE << " (FFT Size) results with expected\n";
+      dout << __func__ << "(): Comparing first " << FFT_SIZE << " (FFT Size) results with expected\n\n";
 
       bool all_are_close = cufftComplexes_are_close( frequencies, expected_frequencies, FFT_SIZE, max_diff, debug );
       if (!all_are_close) { 
          throw std::runtime_error( "ERROR: Not all of the frequencies were close to the expected." );
       }
-      std::cout << "All Frequencies computed on the GPU were close to the expected.\n"; 
+      std::cout << "All Frequencies computed on the GPU were close to the expected.\n\n"; 
       
       /*if ( debug ) {*/
          /*const char space[] = " ";*/
@@ -165,7 +167,7 @@ void SimpleDSP::run() {
 
    } catch (std::exception& ex) {
       throw std::runtime_error{
-         std::string{"SampleProcFunctor::" + std::string{__func__} + "(): " + ex.what()}};
+         std::string{"SimpleDSP::" + std::string{__func__} + "(): " + ex.what()}};
    }
       
 
