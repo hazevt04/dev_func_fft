@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdlib>
 #include <cstring>
 
 #include "my_cuda_utils.hpp"
@@ -8,10 +9,10 @@
 
 #include "simple_dsp_kernels.cuh"
 
-#define NUM_STREAMS 3
 
-#define NUM_CHUNKS 4
-#define NUM_CHUNK_BLOCKS 8
+constexpr int default_num_streams = 4;
+constexpr int default_num_stream_blocks = 4;
+constexpr int max_num_streams = 8;
 
 class SimpleDSP {
    public:
@@ -25,15 +26,16 @@ class SimpleDSP {
          d_con_sqrs( nullptr ),
          d_psds( nullptr ),
          num_samples(0),
-         num_chunk_samples(0),
+         num_streams(0),
+         num_stream_samples(0),
          threads_per_block(0),
          num_blocks(0),
-         num_chunk_blocks(0),
+         num_stream_blocks(0),
          log10num_con_sqrs(0),
          num_bytes(0),
          num_float_bytes(0),
-         num_chunk_bytes(0),
-         num_chunk_float_bytes(0),
+         num_stream_bytes(0),
+         num_stream_float_bytes(0),
          debug(false) {}
 
       SimpleDSP( const int new_num_samples, const bool new_debug );
@@ -54,19 +56,20 @@ class SimpleDSP {
       cufftComplex* d_con_sqrs;
       float* d_psds;
 
-      cudaStream_t streams[NUM_STREAMS];
+      cudaStream_t streams[max_num_streams];
       cudaEvent_t kernel_done;
 
 
       int num_samples;
-      int num_chunk_samples;
+      int num_streams;
+      int num_stream_samples;
       int threads_per_block;
       int num_blocks;
-      int num_chunk_blocks;
+      int num_stream_blocks;
       size_t num_bytes;
       size_t num_float_bytes;
-      size_t num_chunk_bytes;
-      size_t num_chunk_float_bytes;
+      size_t num_stream_bytes;
+      size_t num_stream_float_bytes;
       size_t num_shared_bytes;
       float log10num_con_sqrs;
       bool debug;

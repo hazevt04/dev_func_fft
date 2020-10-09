@@ -1,5 +1,6 @@
 #include "SimpleDSP.cuh"
 
+
 SimpleDSP::SimpleDSP( 
       const int new_num_samples,
       const bool new_debug ):
@@ -9,9 +10,24 @@ SimpleDSP::SimpleDSP(
    try {
       cudaError_t cerror = cudaSuccess;
 
+      num_streams = default_num_streams;
+      
+      if ( const char* pNUM_STREAMS_ENV = std::getenv( "NUM_STREAMS" ) ) {
+         char* pEnd = nullptr;
+         int t_num_streams = std::strtol( pNUM_STREAMS_ENV, &pEnd, 10 );
+         if ( '\0' == *pEnd ) {
+            num_streams = t_num_streams;
+         } else {
+            std::cout << __func__ << "(): WARNING: NUM_STREAMS environment variable set to invalid value: "
+               << std::string{pNUM_STREAMS_ENV} << "\n"
+               << "Using the default value for number of streams " << default_num_streams << "\n"; 
+         }
+      }
 
       threads_per_block = FFT_SIZE;
       num_blocks = (num_samples + threads_per_block -1)/threads_per_block;
+      num_stream_samples = num_samples/num_streams;
+      num_stream_blocks = (num_blocks + num_streams -1)/num_streams;
 
       num_shared_bytes = 0;
       
@@ -19,29 +35,28 @@ SimpleDSP::SimpleDSP(
       // for multiplication.
       num_bytes = sizeof( cufftComplex ) * num_samples;
       num_float_bytes = sizeof( float ) * num_samples;
-
-      num_chunk_samples = num_samples/NUM_CHUNKS;
-      num_chunk_bytes = num_bytes/NUM_CHUNKS;
-      num_chunk_float_bytes = num_float_bytes/NUM_CHUNKS;
-      num_chunk_blocks = (num_blocks + NUM_CHUNKS -1)/NUM_CHUNKS;
+      num_stream_bytes = num_bytes/num_streams;
+      num_stream_float_bytes = num_float_bytes/num_streams;
       
       log10num_con_sqrs = (float)std::log10( num_samples );
 
       dout << __func__ << "(): FFT_SIZE is " << FFT_SIZE << "\n"; 
       dout << __func__ << "(): NUM_FFT_SIZE_BITS is " << NUM_FFT_SIZE_BITS << "\n"; 
       
-      dout << __func__ << "(): threads_per_block = " << threads_per_block << "\n";
-      dout << __func__ << "(): num_blocks = " << num_blocks << "\n";
       dout << __func__ << "(): num_samples is " << num_samples << "\n"; 
-      dout << __func__ << "(): log10num_con_sqrs is " << log10num_con_sqrs << "\n"; 
-      dout << __func__ << "(): num_bytes is " << num_bytes << "\n"; 
-      dout << __func__ << "(): num_float_bytes is " << num_float_bytes << "\n\n"; 
+      dout << __func__ << "(): threads_per_block = " << threads_per_block << "\n";
+      dout << __func__ << "(): num_blocks = " << num_blocks << "\n\n";
+
+      dout << __func__ << "(): num_streams is " << num_streams << "\n"; 
+      dout << __func__ << "(): num_stream_samples is " << num_stream_samples << "\n"; 
+      dout << __func__ << "(): num_stream_blocks = " << num_stream_blocks << "\n\n";
       
-      dout << __func__ << "(): NUM_CHUNKS is " << NUM_CHUNKS << "\n"; 
-      dout << __func__ << "(): num_chunk_blocks = " << num_chunk_blocks << "\n";
-      dout << __func__ << "(): num_chunk_samples is " << num_chunk_samples << "\n"; 
-      dout << __func__ << "(): num_chunk_bytes is " << num_chunk_bytes << "\n"; 
-      dout << __func__ << "(): num_chunk_float_bytes is " << num_chunk_float_bytes << "\n\n"; 
+      dout << __func__ << "(): log10num_con_sqrs is " << log10num_con_sqrs << "\n\n";
+      
+      dout << __func__ << "(): num_bytes is " << num_bytes << "\n"; 
+      dout << __func__ << "(): num_float_bytes is " << num_float_bytes << "\n"; 
+      dout << __func__ << "(): num_stream_bytes is " << num_stream_bytes << "\n"; 
+      dout << __func__ << "(): num_stream_float_bytes is " << num_stream_float_bytes << "\n\n"; 
 
       int device = 0;
       try_cuda_func_throw( cerror, cudaGetDevice(&device) );
@@ -53,23 +68,25 @@ SimpleDSP::SimpleDSP(
       // but also increases latency when waiting for the GPU
       try_cuda_func_throw( cerror, cudaSetDeviceFlags( cudaDeviceScheduleYield ) );
     
-      try_cuda_func_throw( cerror, cudaEventCreateWithFlags( &kernel_done, cudaEventDisableTiming ) ); 
-      
-      for( int stream_num = 0; stream_num < NUM_STREAMS; ++stream_num ) {
+      for( int stream_num = 0; stream_num < num_streams; ++stream_num ) {
          try_cuda_func_throw( cerror, cudaStreamCreate( &streams[stream_num] ) );
       } 
 
-      // Pinned, but not mapped 
       try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&samples, num_bytes, cudaHostAllocDefault ) );
       try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&frequencies, num_bytes, cudaHostAllocDefault ) );
-      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&con_sqrs, num_bytes, cudaHostAllocDefault ) );
-      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&psds, num_bytes, cudaHostAllocDefault ) );
+      /*try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&con_sqrs, num_bytes, cudaHostAllocDefault ) );*/
+      /*try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&psds, num_bytes, cudaHostAllocDefault ) );*/
 
       try_cuda_func_throw( cerror, cudaMalloc( (void**)&d_samples, num_bytes ) );
       try_cuda_func_throw( cerror, cudaMalloc( (void**)&d_frequencies, num_bytes ) );
-      try_cuda_func_throw( cerror, cudaMalloc( (void**)&d_con_sqrs, num_bytes ) );
-      try_cuda_func_throw( cerror, cudaMalloc( (void**)&d_psds, num_float_bytes ) );
-   
+      /*try_cuda_func_throw( cerror, cudaMalloc( (void**)&d_con_sqrs, num_bytes ) );*/
+      /*try_cuda_func_throw( cerror, cudaMalloc( (void**)&d_psds, num_float_bytes ) );*/
+
+      /*try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_samples, (void*)samples, 0 ) );*/
+      /*try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_frequencies, (void*)frequencies, 0 ) );*/
+      /*try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_con_sqrs, (void*)con_sqrs, 0 ) );*/
+      /*try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_psds, (void*)psds, 0 ) );*/
+
       //gen_cufftComplexes( samples, num_samples, -100.0, 100.0 );
       read_binary_file<cufftComplex>(samples,
          "../testdataBPSKcomplex.bin",
@@ -86,13 +103,13 @@ SimpleDSP::SimpleDSP(
          frequencies[index].x = 0;
          frequencies[index].y = 0;
       } 
-      for( int index = 0; index < num_samples; ++index ) {
-         con_sqrs[index].x = 0;
-         con_sqrs[index].y = 0;
-      } 
-      for( int index = 0; index < num_samples; ++index ) {
-         psds[index] = 0;
-      } 
+      /*for( int index = 0; index < num_samples; ++index ) {*/
+         /*con_sqrs[index].x = 0;*/
+         /*con_sqrs[index].y = 0;*/
+      /*} */
+      /*for( int index = 0; index < num_samples; ++index ) {*/
+         /*psds[index] = 0;*/
+      /*} */
 
       //try_cuda_func_throw( cerror, cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeEightByte ) );
 
@@ -121,25 +138,22 @@ void SimpleDSP::run() {
       // Typedef for Time_Point is in my_utils.hpp
       Time_Point start = Steady_Clock::now();
 
-      for( int chunk_num = 0; chunk_num < NUM_CHUNKS; ++chunk_num ) {
+      for( int stream_num = 0; stream_num < num_streams; ++stream_num ) {
       
-         int chunk_index = num_chunk_samples * chunk_num;
-         dout << __func__ << "(): Chunk " << chunk_num << ": Chunk Index is " << chunk_index << "\n";
-         try_cuda_func_throw( cerror, cudaMemcpyAsync( &d_samples[chunk_index], &samples[chunk_index], num_chunk_bytes, cudaMemcpyHostToDevice, streams[0] ) );
+         int stream_index = num_stream_samples * stream_num;
+         try_cuda_func_throw( cerror, cudaMemcpyAsync( &d_samples[stream_index], &samples[stream_index], num_stream_bytes, cudaMemcpyHostToDevice, streams[stream_num] ) );
 
          // Launch the kernel
-         simple_dsp_kernel<<<num_chunk_blocks, threads_per_block, num_shared_bytes, streams[1]>>>( 
-            &d_psds[chunk_index], &d_con_sqrs[chunk_index], &d_frequencies[chunk_index], &d_samples[chunk_index], num_chunk_samples, log10num_con_sqrs );
-         //try_cuda_func_throw( cerror, cudaEventRecord( kernel_done, streams[1] ) );
+         /*simple_dsp_kernel<<<num_stream_blocks, threads_per_block, num_shared_bytes, streams[stream_num]>>>( */
+            /*&d_psds[stream_index], &d_con_sqrs[stream_index], &d_frequencies[stream_index], &d_samples[stream_index], num_stream_samples, log10num_con_sqrs );*/
+         cookbook_fft64<<<num_stream_blocks, threads_per_block, num_shared_bytes, streams[stream_num]>>>( 
+            &d_frequencies[stream_index], &d_samples[stream_index], num_stream_samples );
          
-         //try_cuda_func_throw( cerror, cudaEventSynchronize( kernel_done ) );
-
-         try_cuda_func_throw( cerror, cudaStreamSynchronize( streams[1] ) );
-         dout << __func__ << "(): Done with simple_dsp_kernel with chunk " << chunk_num << "\n"; 
-         
-         try_cuda_func_throw( cerror, cudaMemcpyAsync( &frequencies[chunk_index], &d_frequencies[chunk_index], num_chunk_bytes, cudaMemcpyDeviceToHost, streams[2] ) );
+         try_cuda_func_throw( cerror, cudaMemcpyAsync( &frequencies[stream_index], &d_frequencies[stream_index], num_stream_bytes, cudaMemcpyDeviceToHost, streams[stream_num] ) );
       }
 
+      try_cuda_func_throw( cerror, cudaStreamSynchronize( streams[num_streams-1] ) );
+      //dout << __func__ << "(): Done with simple_dsp_kernel with " << NUM_CHUNKS << "\n"; 
 
       duration_ms = Steady_Clock::now() - start;
       gpu_milliseconds = duration_ms.count();

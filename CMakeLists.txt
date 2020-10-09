@@ -20,6 +20,8 @@ cuda_select_nvcc_arch_flags(ARCH_FLAGS Auto)
 LIST(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
 LIST(APPEND CUDA_NVCC_FLAGS "--ptxas-options=-v")
 LIST(APPEND CUDA_NVCC_FLAGS "--use_fast_math")
+LIST(APPEND CUDA_NVCC_FLAGS "--maxrregcount=64")
+
 
 set(EXEC_NAME "${CMAKE_PROJECT_NAME}")
 
