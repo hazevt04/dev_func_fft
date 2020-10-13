@@ -8,6 +8,8 @@
 
 #include "simple_dsp_kernels.cuh"
 
+constexpr float max_diff = 1e-3;
+
 class SimpleDSP {
    public:
       SimpleDSP():
