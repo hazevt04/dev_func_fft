@@ -16,13 +16,22 @@ SimpleDSP::SimpleDSP(
       size_t num_float_bytes = sizeof( float ) * num_samples;
       
       log10num_con_sqrs = (float)std::log10( num_samples );
+      
+      threads_per_block = FFT_SIZE;
+      num_blocks = (num_samples + threads_per_block -1)/threads_per_block;
+      num_shared_bytes = /*num_blocks **/ FFT_SIZE * sizeof( cufftComplex );
 
       dout << __func__ << "(): num_samples is " << num_samples << "\n"; 
+      dout << __func__ << "(): threads_per_block = " << threads_per_block << "\n";
+      dout << __func__ << "(): num_blocks = " << num_blocks << "\n";
+      dout << __func__ << "(): num_shared_bytes is " << num_shared_bytes << "\n\n"; 
+
       dout << __func__ << "(): FFT_SIZE is " << FFT_SIZE << "\n"; 
-      dout << __func__ << "(): NUM_FFT_SIZE_BITS is " << NUM_FFT_SIZE_BITS << "\n"; 
+      dout << __func__ << "(): NUM_FFT_SIZE_BITS is " << NUM_FFT_SIZE_BITS << "\n\n";
+
       dout << __func__ << "(): log10num_con_sqrs is " << log10num_con_sqrs << "\n"; 
       dout << __func__ << "(): num_bytes is " << num_bytes << "\n"; 
-      dout << __func__ << "(): num_float_bytes is " << num_float_bytes << "\n"; 
+      dout << __func__ << "(): num_float_bytes is " << num_float_bytes << "\n\n"; 
 
       try_cuda_func_throw( cerror, cudaSetDevice(0) );
       
@@ -85,14 +94,6 @@ void SimpleDSP::run() {
       Duration_ms duration_ms;
       float gpu_milliseconds = 0;
       
-      int threads_per_block = FFT_SIZE;
-      int num_blocks = (num_samples + threads_per_block -1)/threads_per_block;
-      size_t num_shared_bytes = num_blocks * FFT_SIZE * sizeof( cufftComplex );
-
-      dout << __func__ << "(): num_samples = " << num_samples << "\n";
-      dout << __func__ << "(): threads_per_block = " << threads_per_block << "\n";
-      dout << __func__ << "(): num_blocks = " << num_blocks << "\n\n";
-      
       // Typedef for Time_Point is in my_utils.hpp
       Time_Point start = Steady_Clock::now();
 
@@ -109,16 +110,17 @@ void SimpleDSP::run() {
       std::cout << "GPU processing took " << gpu_milliseconds << " milliseconds\n\n";
       
       if ( debug ) {
-         const char delim[] = " ";
+         const char delim[] = ", ";
          const char suffix[] = "\n";
          print_cufftComplexes(sfrequencies, num_samples, "Shifted Frequencies from GPU: ", delim, suffix);
+         print_cufftComplexes(frequencies, num_samples, "Frequencies from GPU: ", delim, suffix);
          print_cufftComplexes(expected_frequencies, num_samples, "Expected Frequencies: ", delim, suffix);
       }
       
       float max_diff = 1e-3;
-      dout << __func__ << "(): Comparing first " << FFT_SIZE << " (FFT Size) results with expected\n\n";
+      dout << __func__ << "(): Comparing " << num_samples << " results with expected\n\n";
 
-      bool all_are_close = cufftComplexes_are_close( sfrequencies, expected_frequencies, FFT_SIZE, max_diff, debug );
+      bool all_are_close = cufftComplexes_are_close( sfrequencies, expected_frequencies, num_samples, max_diff, debug );
       if (!all_are_close) { 
          throw std::runtime_error( "ERROR: Not all of the frequencies were close to the expected." );
       }

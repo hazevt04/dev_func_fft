@@ -15,9 +15,13 @@ class SimpleDSP {
       SimpleDSP():
          samples( nullptr ),
          frequencies( nullptr ),
+         sfrequencies( nullptr ),
          con_sqrs( nullptr ),
          psds( nullptr ),
          num_samples(0),
+         threads_per_block(0),
+         num_blocks(0),
+         num_shared_bytes(0),
          log10num_con_sqrs(0),
          debug(false) {}
 
@@ -36,6 +40,9 @@ class SimpleDSP {
       float* psds;
 
       int num_samples;
+      int threads_per_block;
+      int num_blocks;
+      size_t num_shared_bytes;
       float log10num_con_sqrs;
       bool debug;
 };

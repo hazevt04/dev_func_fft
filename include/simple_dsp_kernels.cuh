@@ -4,6 +4,7 @@
 
 #define NUM_FFT_SIZE_BITS 6
 #define FFT_SIZE (1u << (NUM_FFT_SIZE_BITS))
+#define HALF_FFT_SIZE (1u << ((NUM_FFT_SIZE_BITS)-1))
 #define PI 3.1415926536f
 
 // FFT Implementation from C++ Cookbook:
@@ -41,11 +42,11 @@ __device__
 void calc_psds(float* __restrict__ psds, const cufftComplex* __restrict__ con_sqrs, const int num_con_sqrs, const float log10num_con_sqrs);
 
 __device__ 
-void cufft_shift(cufftComplex* __restrict__ shifted_frequencies, const cufftComplex* __restrict__ frequencies, const int num_frequencies);
+void cufft_shift(cufftComplex* __restrict__ shifted_frequencies, const cufftComplex* __restrict__ frequencies, const int num_frequencies );
 
 __device__ 
-void cookbook_fft64(cufftComplex* frequencies, cufftComplex* __restrict__ sh_samples, const int num_samples);
+void cookbook_fft64(cufftComplex* frequencies, cufftComplex* __restrict__ sh_samples, const int num_samples );
 
 __global__
 void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* sfrequencies, cufftComplex* frequencies, 
-   const cufftComplex* __restrict__ samples,  const int num_samples, const float log10num_con_sqrs);
+   const cufftComplex* __restrict__ samples, const int num_samples, const float log10num_con_sqrs);

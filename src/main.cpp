@@ -7,7 +7,7 @@
 
 int main() {
    try {
-      bool debug = true;
+      bool debug = false;
       int num_samples = 1 * FFT_SIZE;
 
       SimpleDSP simple_dsp( num_samples, debug );
