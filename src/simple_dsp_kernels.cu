@@ -49,6 +49,21 @@ void calc_psds(float* __restrict__ psds, const cufftComplex* __restrict__ con_sq
 
 }
 
+__device__ 
+void cufft_shift(cufftComplex* __restrict__ shifted_frequencies,
+   const cufftComplex* __restrict__ frequencies,
+   const int num_frequencies) {
+
+   auto group = cg::this_grid();
+   int half_num_frequencies = num_frequencies / 2;
+
+   if (group.thread_rank() < half_num_frequencies) {
+      shifted_frequencies[group.thread_rank()] = frequencies[group.thread_rank() + half_num_frequencies];
+   } else if ((group.thread_rank() >= half_num_frequencies) && (group.thread_rank() < num_frequencies)) {
+      shifted_frequencies[group.thread_rank()] = frequencies[group.thread_rank() - half_num_frequencies];
+   }
+} // end of cufft_shift
+
 
 __device__
 void cookbook_fft64(cufftComplex* frequencies, cufftComplex* __restrict__ sh_samples, const int num_samples) {
@@ -86,7 +101,7 @@ void cookbook_fft64(cufftComplex* frequencies, cufftComplex* __restrict__ sh_sam
 
 
 __global__
-void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* frequencies, 
+void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_sqrs, cufftComplex* sfrequencies, cufftComplex* frequencies,
       const cufftComplex* __restrict__ samples, const int num_samples, const float log10num_con_sqrs) {
   
    extern __shared__ cufftComplex sh_samples[];
@@ -97,6 +112,7 @@ void simple_dsp_kernel(float* __restrict__ psds, cufftComplex* __restrict__ con_
    sh_samples[thread_index] = samples[thread_index];
 
    cookbook_fft64( frequencies, sh_samples, num_samples );
+   cufft_shift( sfrequencies, frequencies, num_samples );
    /*calc_con_sqrs( con_sqrs, frequencies, num_samples );*/
    /*calc_psds( psds, con_sqrs, num_samples, log10num_con_sqrs);*/
 }

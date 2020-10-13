@@ -8,7 +8,7 @@
 int main() {
    try {
       bool debug = true;
-      int num_samples = 2 * FFT_SIZE;
+      int num_samples = 1 * FFT_SIZE;
 
       SimpleDSP simple_dsp( num_samples, debug );
       simple_dsp.run();

@@ -35,6 +35,7 @@ SimpleDSP::SimpleDSP(
 
       try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&samples, num_bytes * 2 ) );
       try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&frequencies, num_bytes ) );
+      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&sfrequencies, num_bytes ) );
       try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&con_sqrs, num_bytes ) );
       try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&psds, num_float_bytes ) );
 
@@ -53,12 +54,10 @@ SimpleDSP::SimpleDSP(
       for( int index = 0; index < num_samples; ++index ) {
          frequencies[index].x = 0;
          frequencies[index].y = 0;
-      } 
-      for( int index = 0; index < num_samples; ++index ) {
+         sfrequencies[index].x = 0;
+         sfrequencies[index].y = 0;
          con_sqrs[index].x = 0;
          con_sqrs[index].y = 0;
-      } 
-      for( int index = 0; index < num_samples; ++index ) {
          psds[index] = 0;
       } 
 
@@ -100,7 +99,7 @@ void SimpleDSP::run() {
       dout << __func__ << "(): Launching simple_dsp_kernel()...\n";
       // Launch the kernel
       simple_dsp_kernel<<<num_blocks, threads_per_block, num_shared_bytes>>>(psds, con_sqrs, 
-         frequencies, samples, num_samples, log10num_con_sqrs);
+         sfrequencies, frequencies, samples, num_samples, log10num_con_sqrs);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
       dout << __func__ << "(): Done with simple_dsp_kernel...\n\n"; 
@@ -112,13 +111,14 @@ void SimpleDSP::run() {
       if ( debug ) {
          const char delim[] = " ";
          const char suffix[] = "\n";
-         print_cufftComplexes(frequencies, num_samples, "Frequencies from GPU: ", delim, suffix);
+         print_cufftComplexes(sfrequencies, num_samples, "Shifted Frequencies from GPU: ", delim, suffix);
+         print_cufftComplexes(expected_frequencies, num_samples, "Expected Frequencies: ", delim, suffix);
       }
       
       float max_diff = 1e-3;
       dout << __func__ << "(): Comparing first " << FFT_SIZE << " (FFT Size) results with expected\n\n";
 
-      bool all_are_close = cufftComplexes_are_close( frequencies, expected_frequencies, FFT_SIZE, max_diff, debug );
+      bool all_are_close = cufftComplexes_are_close( sfrequencies, expected_frequencies, FFT_SIZE, max_diff, debug );
       if (!all_are_close) { 
          throw std::runtime_error( "ERROR: Not all of the frequencies were close to the expected." );
       }
@@ -131,7 +131,6 @@ void SimpleDSP::run() {
          /*print_cufftComplexes(con_sqrs, num_samples, "Conjugate Squares from GPU: ", space, newline);*/
          /*print_vals<float>(psds, num_samples, "PSDs from GPU: ", comma_space, newline);*/
       /*}*/
-
 
    } catch (std::exception& ex) {
       throw std::runtime_error{

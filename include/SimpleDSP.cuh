@@ -31,6 +31,7 @@ class SimpleDSP {
    private:
       cufftComplex* samples;
       cufftComplex* frequencies;
+      cufftComplex* sfrequencies;
       cufftComplex* con_sqrs;
       float* psds;
 
