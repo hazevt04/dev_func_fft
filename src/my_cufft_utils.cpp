@@ -34,9 +34,8 @@ void print_cufftComplexes(const cufftComplex* vals,
    const char* delim,
    const char* suffix ) {
 
-   std::cout << prefix;
    for (int index = 0; index < num_vals; ++index) {
-      std::cout << "\nIndex " << index << ": {" << vals[index].x << ", " << vals[index].y << "}" << ((index == num_vals - 1) ? "\n" : delim);
+      std::cout << "\n" << prefix << "Index " << index << ": {" << vals[index].x << ", " << vals[index].y << "}" << ((index == num_vals - 1) ? "\n" : delim);
    }
    std::cout << suffix;
 }

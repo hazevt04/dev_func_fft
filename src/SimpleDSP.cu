@@ -42,7 +42,7 @@ SimpleDSP::SimpleDSP(
       // performance of CPU threads performing work in parallel with the device.
       try_cuda_func_throw( cerror, cudaSetDeviceFlags( cudaDeviceScheduleYield ) );
 
-      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&samples, num_bytes * 2 ) );
+      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&samples, num_bytes ) );
       try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&frequencies, num_bytes ) );
       try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&sfrequencies, num_bytes ) );
       try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&con_sqrs, num_bytes ) );
