@@ -67,6 +67,7 @@ void cufft_shift(cufftComplex* __restrict__ shifted_frequencies,
       } else if ((thread_index >= HALF_FFT_SIZE) && (thread_index < FFT_SIZE)) {
          sh_frequencies[thread_index] = sh_frequencies[thread_index - HALF_FFT_SIZE];
       }
+      __syncthreads();
 
       shifted_frequencies[global_index] = sh_frequencies[thread_index];
    }
@@ -97,6 +98,7 @@ void cookbook_fft64(cufftComplex* frequencies, cufftComplex* __restrict__ sh_sam
                cufftComplex u = make_cuComplex( sh_samples[k].x, sh_samples[k].y );
                __syncthreads();
                sh_samples[k] = cuCaddf( u, t );
+               __syncthreads();
                sh_samples[k + m2] = cuCsubf( u, t );
                __syncthreads();
             }

@@ -60,15 +60,20 @@ SimpleDSP::SimpleDSP(
          print_cufftComplexes(samples, num_samples, "Samples from testfile: ", delim, suffix);
       }
 
-      for( int index = 0; index < num_samples; ++index ) {
-         frequencies[index].x = 0;
-         frequencies[index].y = 0;
-         sfrequencies[index].x = 0;
-         sfrequencies[index].y = 0;
-         con_sqrs[index].x = 0;
-         con_sqrs[index].y = 0;
-         psds[index] = 0;
-      } 
+      try_cuda_func_throw( cerror, cudaMemset( (void*)frequencies, 0, num_bytes ) ); 
+      try_cuda_func_throw( cerror, cudaMemset( (void*)sfrequencies, 0, num_bytes ) ); 
+      try_cuda_func_throw( cerror, cudaMemset( (void*)con_sqrs, 0, num_bytes ) ); 
+      try_cuda_func_throw( cerror, cudaMemset( (void*)psds, 0, num_float_bytes ) ); 
+
+      /*for( int index = 0; index < num_samples; ++index ) {*/
+      /*   frequencies[index].x = 0;*/
+      /*   frequencies[index].y = 0;*/
+      /*   sfrequencies[index].x = 0;*/
+      /*   sfrequencies[index].y = 0;*/
+      /*   con_sqrs[index].x = 0;*/
+      /*   con_sqrs[index].y = 0;*/
+      /*   psds[index] = 0;*/
+      /*} */
 
       //try_cuda_func_throw( cerror, cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeEightByte ) );
 
