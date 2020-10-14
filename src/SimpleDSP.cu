@@ -122,7 +122,7 @@ void SimpleDSP::run() {
          print_cufftComplexes(expected_frequencies, num_samples, "Expected Frequencies: ", delim, suffix);
       }
       
-      float max_diff = 1e-3;
+      float max_diff = 1e-2;
       dout << __func__ << "(): Comparing " << num_samples << " results with expected\n\n";
 
       bool all_are_close = cufftComplexes_are_close( sfrequencies, expected_frequencies, num_samples, max_diff, debug );
