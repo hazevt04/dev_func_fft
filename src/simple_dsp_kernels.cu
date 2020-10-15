@@ -81,32 +81,47 @@ void cookbook_fft64(cufftComplex* frequencies, cufftComplex* __restrict__ sh_sam
 
    if ( global_index < num_samples ) {
 
-      if ( thread_index == 0 ) {
-         int br_index = bit_reverse( (int)thread_index, NUM_FFT_SIZE_BITS );
-         sh_samples[thread_index].x = sh_samples[br_index].x;
-         sh_samples[thread_index].y = sh_samples[br_index].y;
-         
-         const cufftComplex J = make_cuComplex(0,-1);
-         for (int s = 1; s <= NUM_FFT_SIZE_BITS; ++s) {
-            unsigned int m = (1 << s);
-            unsigned int m2 = (m >> 1);
-            cufftComplex w = make_cuComplex(1, 0);
-            cufftComplex wm = complex_exponential( cuCmulf( J, make_cuComplex( (PI / m2), 0 ) ) );
-            for (unsigned int j = 0; j != m2; ++j) {
-               for (int k = j; k < FFT_SIZE; k += m) {
-                  cufftComplex t = cuCmulf( w, sh_samples[k + m2] );
-                  cufftComplex u = make_cuComplex( sh_samples[k].x, sh_samples[k].y );
-                  sh_samples[k] = cuCaddf( u, t );
-                  sh_samples[k + m2] = cuCsubf( u, t );
-               }
-               w = cuCmulf( w, wm );
-            } // end of for (unsigned int j = 0; j != m2; ++j) {
-         } // end of for (int s = 1; s <= NUM_FFT_SIZE_BITS; ++s) {
-      } // if ( thread_index == 0 ) {
+      int br_index = bit_reverse( (int)thread_index, NUM_FFT_SIZE_BITS );
+      sh_samples[thread_index].x = sh_samples[br_index].x;
+      __syncthreads();
+      sh_samples[thread_index].y = sh_samples[br_index].y;
+      __syncthreads();
+      
+      const cufftComplex J = make_cuComplex(0,-1);
+      __syncthreads();
+      for (int s = 1; s <= NUM_FFT_SIZE_BITS; ++s) {
+         unsigned int m = (1 << s);
+         __syncthreads();
+         unsigned int m2 = (m >> 1);
+         __syncthreads();
+         cufftComplex w = make_cuComplex(1, 0);
+         __syncthreads();
+         cufftComplex wm = complex_exponential( cuCmulf( J, make_cuComplex( (PI / m2), 0 ) ) );
+         __syncthreads();
+         for (unsigned int j = 0; j != m2; ++j) {
+            __syncthreads();
+            for (int k = j; k < FFT_SIZE; k += m) {
+               cufftComplex t = cuCmulf( w, sh_samples[k + m2] );
+               __syncthreads();
+               cufftComplex u = make_cuComplex( sh_samples[k].x, sh_samples[k].y );
+               __syncthreads();
+               sh_samples[k] = cuCaddf( u, t );
+               __syncthreads();
+               sh_samples[k + m2] = cuCsubf( u, t );
+               __syncthreads();
+            }
+            __syncthreads();
+            w = cuCmulf( w, wm );
+            __syncthreads();
+         } // end of for (unsigned int j = 0; j != m2; ++j) {
+         __syncthreads();
+      } // end of for (int s = 1; s <= NUM_FFT_SIZE_BITS; ++s) {
       __syncthreads();
       
       frequencies[global_index].x = sh_samples[thread_index].x;
+      __syncthreads();
       frequencies[global_index].y = sh_samples[thread_index].y;
+      __syncthreads();
    } // if ( global_index < num_samples ) {
    
 } // end of cookbook_fft64

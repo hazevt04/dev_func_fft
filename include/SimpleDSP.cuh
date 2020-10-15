@@ -18,6 +18,11 @@ class SimpleDSP {
          sfrequencies( nullptr ),
          con_sqrs( nullptr ),
          psds( nullptr ),
+         d_samples( nullptr ),
+         d_frequencies( nullptr ),
+         d_sfrequencies( nullptr ),
+         d_con_sqrs( nullptr ),
+         d_psds( nullptr ),
          num_samples(0),
          threads_per_block(0),
          num_blocks(0),
@@ -38,6 +43,12 @@ class SimpleDSP {
       cufftComplex* sfrequencies;
       cufftComplex* con_sqrs;
       float* psds;
+      
+      cufftComplex* d_samples;
+      cufftComplex* d_frequencies;
+      cufftComplex* d_sfrequencies;
+      cufftComplex* d_con_sqrs;
+      float* d_psds;
 
       int num_samples;
       int threads_per_block;
@@ -45,4 +56,6 @@ class SimpleDSP {
       size_t num_shared_bytes;
       float log10num_con_sqrs;
       bool debug;
+
+      cudaStream_t stream;
 };
