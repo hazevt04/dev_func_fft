@@ -1,9 +1,8 @@
 #pragma once
 
-
 #include <cufft.h>
 
-constexpr cufftComplex expected_frequencies[] = {
+constexpr cufftComplex expected_sfrequencies[] = {
    {44, 40}, 
    {-10.921772387271055, 15.03216534300531}, 
    {-23.930410294459833, 3.578394425278141}, 

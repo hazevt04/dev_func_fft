@@ -1,12 +1,6 @@
 #pragma once
-#include <cstring>
 
-#include "my_cuda_utils.hpp"
-#include "my_cufft_utils.hpp"
-
-#include "my_file_io_funcs.hpp"
-
-#include "simple_dsp_kernels.cuh"
+#include <cufft.h>
 
 constexpr float max_diff = 1e-3;
 
@@ -26,7 +20,6 @@ class SimpleDSP {
          num_samples(0),
          threads_per_block(0),
          num_blocks(0),
-         num_shared_bytes(0),
          log10num_con_sqrs(0),
          debug(false) {}
 
@@ -51,11 +44,10 @@ class SimpleDSP {
       float* d_psds;
 
       int num_samples;
+      int num_ffts;
       int threads_per_block;
       int num_blocks;
-      size_t num_shared_bytes;
       float log10num_con_sqrs;
       bool debug;
 
-      cudaStream_t stream;
 };
