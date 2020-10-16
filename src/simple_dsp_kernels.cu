@@ -35,29 +35,4 @@ void calc_psds(float* __restrict__ psds, const cufftComplex* __restrict__ con_sq
 
 }
 
-__device__ 
-void cufft_shift(cufftComplex* __restrict__ shifted_frequencies,
-   const cufftComplex* __restrict__ frequencies, const int num_frequencies) {
-
-   int thread_index = threadIdx.x;
-   int global_index = threadIdx.x + blockIdx.x * blockDim.x;
-
-   __shared__ cufftComplex sh_frequencies[FFT_SIZE];
-   sh_frequencies[thread_index] = frequencies[global_index];
-   __syncthreads();
-
-   if ( global_index < num_frequencies ) {
-
-      __syncthreads();
-      if (thread_index < HALF_FFT_SIZE) {
-         sh_frequencies[thread_index] = sh_frequencies[thread_index + HALF_FFT_SIZE];
-      } else if ((thread_index >= HALF_FFT_SIZE) && (thread_index < FFT_SIZE)) {
-         sh_frequencies[thread_index] = sh_frequencies[thread_index - HALF_FFT_SIZE];
-      }
-      __syncthreads();
-
-      shifted_frequencies[global_index] = sh_frequencies[thread_index];
-   }
-} // end of cufft_shift
-
 
