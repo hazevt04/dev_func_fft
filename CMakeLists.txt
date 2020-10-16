@@ -21,6 +21,12 @@ LIST(APPEND CUDA_NVCC_FLAGS ${ARCH_FLAGS})
 LIST(APPEND CUDA_NVCC_FLAGS "--ptxas-options=-v")
 LIST(APPEND CUDA_NVCC_FLAGS "--use_fast_math")
 
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+   message(status "debug mode")
+   LIST(APPEND CUDA_NVCC_FLAGS "--device-debug")
+   #LIST(APPEND CUDA_NVCC_FLAGS "--generate-line-info")
+ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
+
 set(EXEC_NAME "${CMAKE_PROJECT_NAME}")
 
 set(SRCS
