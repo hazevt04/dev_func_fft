@@ -123,8 +123,8 @@ void SimpleDSP::run() {
       simple_dsp_kernel<<<num_blocks, threads_per_block, num_shared_bytes>>>(
          d_psds, d_con_sqrs, d_sfrequencies, d_frequencies, d_samples, num_samples, log10num_con_sqrs);
 
-      //try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
-      try_cuda_func_throw( cerror, cudaStreamSynchronize( stream ) );
+      try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
+      //try_cuda_func_throw( cerror, cudaStreamSynchronize( stream ) );
       dout << __func__ << "(): Done with simple_dsp_kernel...\n\n"; 
 
       duration_ms = Steady_Clock::now() - start;
