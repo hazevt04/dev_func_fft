@@ -518,7 +518,7 @@ __device__ void do_SMFFT_CT_DIT(cufftComplex *sh_samples) {
 		sh_samples[D_read_index]=D_DFT_value;
 	}
 
-   // Reload the temps to swap the halves of the FFTs
+   // Swap the halves of each 64 sample FFT
    A_read_index = itemp;
    B_read_index = itemp + const_params::warp;
    C_read_index = itemp + 2*const_params::warp;
