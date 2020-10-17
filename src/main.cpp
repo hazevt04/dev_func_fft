@@ -37,7 +37,7 @@ int get_num_samples( const char* input_string, const bool debug ) {
 
 int main( int argc, char* argv[] ) {
    try {
-      bool debug = true;
+      bool debug = false;
       int num_samples = 4*FFT_SIZE;
 
       if ( argc > 1 ) {
