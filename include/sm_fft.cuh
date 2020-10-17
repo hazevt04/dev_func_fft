@@ -323,16 +323,19 @@ __device__ __inline__ void reorder_4096(float2 *s_input, float2 *A_DFT_value, fl
 }
 
 // From https://github.com/KAdamek/SMFFT/blob/master/SMFFT_CooleyTukey_C2C/FFT-GPU-32bit.cu
+// with extra code for swapping the quadrants of the output
 template<class const_params>
 __device__ void do_SMFFT_CT_DIT(cufftComplex *sh_samples) {
 
 	cufftComplex A_DFT_value, B_DFT_value, C_DFT_value, D_DFT_value;
+	cufftComplex A_shift_value, B_shift_value, C_shift_value, D_shift_value;
 	cufftComplex W;
 	cufftComplex Aftemp, Bftemp, Cftemp, Dftemp;
 
 	int j, m_param;
 	int parity, itemp;
 	int A_read_index, B_read_index, C_read_index, D_read_index;
+	int A_shift_index, B_shift_index, C_shift_index, D_shift_index;
 	int PoT, PoTp1, q;
 
 	int local_id = threadIdx.x & (const_params::warp - 1);
@@ -514,6 +517,60 @@ __device__ void do_SMFFT_CT_DIT(cufftComplex *sh_samples) {
 		sh_samples[C_read_index]=C_DFT_value;
 		sh_samples[D_read_index]=D_DFT_value;
 	}
+
+   // Reload the temps to swap the halves of the FFTs
+   A_read_index = itemp;
+   B_read_index = itemp + const_params::warp;
+   C_read_index = itemp + 2*const_params::warp;
+   D_read_index = itemp + 3*const_params::warp;
+
+	if (( (A_read_index >= 0 ) && ( A_read_index < const_params::warp )) ||
+		( A_read_index >= 2*const_params::warp ) && ( A_read_index < 3*const_params::warp )) {
+
+		A_shift_index = A_read_index + const_params::warp;
+	} else if ((( A_read_index >= const_params::warp ) && ( A_read_index < 2*const_params::warp )) ||
+		( A_read_index >= 3*const_params::warp ) && ( A_read_index < 4*const_params::warp )) {
+
+		A_shift_index = A_read_index - const_params::warp;
+	}
+	if (( (B_read_index >= 0 ) && ( B_read_index < const_params::warp )) ||
+		( B_read_index >= 2*const_params::warp ) && ( B_read_index < 3*const_params::warp )) {
+
+		B_shift_index = B_read_index + const_params::warp;
+	} else if ((( B_read_index >= const_params::warp ) && ( B_read_index < 2*const_params::warp )) ||
+		( B_read_index >= 3*const_params::warp ) && ( B_read_index < 4*const_params::warp )) {
+
+		B_shift_index = B_read_index - const_params::warp;
+	}
+	if (( (C_read_index >= 0 ) && ( C_read_index < const_params::warp )) ||
+		( C_read_index >= 2*const_params::warp ) && ( C_read_index < 3*const_params::warp )) {
+
+		C_shift_index = C_read_index + const_params::warp;
+	} else if ((( C_read_index >= const_params::warp ) && ( C_read_index < 2*const_params::warp )) ||
+		( C_read_index >= 3*const_params::warp ) && ( C_read_index < 4*const_params::warp )) {
+
+		C_shift_index = C_read_index - const_params::warp;
+	}
+	if (( (D_read_index >= 0 ) && ( D_read_index < const_params::warp )) ||
+		( D_read_index >= 2*const_params::warp ) && ( D_read_index < 3*const_params::warp )) {
+
+		D_shift_index = D_read_index + const_params::warp;
+	} else if ((( D_read_index >= const_params::warp ) && ( D_read_index < 2*const_params::warp )) ||
+		( D_read_index >= 3*const_params::warp ) && ( D_read_index < 4*const_params::warp )) {
+
+		D_shift_index = D_read_index - const_params::warp;
+	}
+
+   A_shift_value = sh_samples[A_shift_index]; 
+   B_shift_value = sh_samples[B_shift_index]; 
+   C_shift_value = sh_samples[C_shift_index]; 
+   D_shift_value = sh_samples[D_shift_index]; 
+   __syncthreads();
+
+   sh_samples[A_read_index] = A_shift_value;
+   sh_samples[B_read_index] = B_shift_value;
+   sh_samples[C_read_index] = C_shift_value;
+   sh_samples[D_read_index] = D_shift_value;
 
 }
 
