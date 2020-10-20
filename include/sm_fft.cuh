@@ -421,15 +421,15 @@ __device__ void do_SMFFT_CT_DIT(cufftComplex *sh_samples) {
 		Cftemp.y = W.x*C_DFT_value.y + W.y*C_DFT_value.x;
 		Dftemp.x = W.x*D_DFT_value.x - W.y*D_DFT_value.y;
 		Dftemp.y = W.x*D_DFT_value.y + W.y*D_DFT_value.x;
-		
-		A_DFT_value.x = Aftemp.x + parity*shfl_xor(&Aftemp.x,PoT);
-		A_DFT_value.y = Aftemp.y + parity*shfl_xor(&Aftemp.y,PoT);
-		B_DFT_value.x = Bftemp.x + parity*shfl_xor(&Bftemp.x,PoT);
-		B_DFT_value.y = Bftemp.y + parity*shfl_xor(&Bftemp.y,PoT);
-		C_DFT_value.x = Cftemp.x + parity*shfl_xor(&Cftemp.x,PoT);
-		C_DFT_value.y = Cftemp.y + parity*shfl_xor(&Cftemp.y,PoT);
-		D_DFT_value.x = Dftemp.x + parity*shfl_xor(&Dftemp.x,PoT);
-		D_DFT_value.y = Dftemp.y + parity*shfl_xor(&Dftemp.y,PoT);	
+
+		A_DFT_value.x = __fmaf_ieee_rn( (float)parity, shfl_xor(&Aftemp.x,PoT), Aftemp.x );
+		A_DFT_value.y = __fmaf_ieee_rn( (float)parity, shfl_xor(&Aftemp.y,PoT), Aftemp.y );
+		B_DFT_value.x = __fmaf_ieee_rn( (float)parity, shfl_xor(&Bftemp.x,PoT), Bftemp.x );
+		B_DFT_value.y = __fmaf_ieee_rn( (float)parity, shfl_xor(&Bftemp.y,PoT), Bftemp.y );
+		C_DFT_value.x = __fmaf_ieee_rn( (float)parity, shfl_xor(&Cftemp.x,PoT), Cftemp.x );
+		C_DFT_value.y = __fmaf_ieee_rn( (float)parity, shfl_xor(&Cftemp.y,PoT), Cftemp.y );
+		D_DFT_value.x = __fmaf_ieee_rn( (float)parity, shfl_xor(&Dftemp.x,PoT), Dftemp.x );
+		D_DFT_value.y = __fmaf_ieee_rn( (float)parity, shfl_xor(&Dftemp.y,PoT), Dftemp.y );
 		
 		PoT=PoT<<1;
 		PoTp1=PoTp1<<1;
