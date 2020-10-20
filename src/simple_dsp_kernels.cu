@@ -3,7 +3,6 @@
 #include <cooperative_groups.h>
 
 #include "simple_dsp_kernels.cuh"
-
 #define WARP_SIZE 32
 
 __device__ 

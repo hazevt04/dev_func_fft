@@ -1,3 +1,5 @@
+#pragma once
+
 class FFT_Params {
 public:
 	static const int fft_exp = -1;

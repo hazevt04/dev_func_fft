@@ -35,6 +35,7 @@ set(SRCS
    "src/my_utils.cpp"
    "src/my_file_io_funcs.cpp"
    "src/my_cufft_utils.cpp"
+   "src/sincos_table.cu"
    "src/simple_dsp_kernels.cu"
    "src/SimpleDSP.cu"
    "src/main.cpp"

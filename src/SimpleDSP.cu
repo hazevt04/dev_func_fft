@@ -1,19 +1,5 @@
-#include <cstring>
-
-#include "my_cuda_utils.hpp"
-#include "my_cufft_utils.hpp"
-#include "my_file_io_funcs.hpp"
-
 #include "SimpleDSP.cuh"
-
 #include "simple_dsp_kernels.cuh"
-
-#include "SM_FFT_parameters.cuh"
-
-#include "sm_fft.cuh"
-
-#include "expected_sfrequencies.hpp"
-#include "expected_con_sqrs.hpp"
 
 SimpleDSP::SimpleDSP( 
       const int new_num_samples,
@@ -31,7 +17,7 @@ SimpleDSP::SimpleDSP(
       size_t num_bytes = sizeof( cufftComplex ) * num_samples;
       size_t num_float_bytes = sizeof( float ) * num_samples;
       
-      log10num_con_sqrs = (float)std::log10( num_samples );
+      log10num_con_sqrs = 10*(float)std::log10( num_samples );
       
       threads_per_block = FFT_SIZE/2;
       num_blocks = num_ffts/2;
@@ -156,6 +142,8 @@ void SimpleDSP::run() {
          print_cufftComplexes(sfrequencies, num_samples, "Shifted Frequencies from GPU: ", delim, suffix);
          print_vals<float>(expected_con_sqrs, num_samples, "Expected Conjugate Squares: ", delim, suffix);
          print_vals<float>(con_sqrs, num_samples, "Conjugate Squares: ", delim, suffix);
+         print_vals<float>(expected_psds, num_samples, "Expected PSDs: ", delim, suffix);
+         print_vals<float>(psds, num_samples, "PSDs: ", delim, suffix);
       }
       
       float max_diff = 1e-2;
@@ -168,13 +156,21 @@ void SimpleDSP::run() {
       std::cout << "All Shifted Frequencies computed on the GPU were close to the expected.\n"; 
 
       max_diff = 1e-1;
-      dout << __func__ << "(): Comparing " << num_samples << " conjugate squares with expected\n\n";
+      dout << __func__ << "(): Comparing " << num_samples << " conjugate squares with expected\n";
       all_are_close = vals_are_close<float>( con_sqrs, expected_con_sqrs, num_samples, max_diff, debug );
       if (!all_are_close) { 
          throw std::runtime_error( "Not all of the conjugate squares were close to the expected." );
       }
-      std::cout << "All Conjugate Squares computed on the GPU were close to the expected.\n\n"; 
-      
+      std::cout << "All Conjugate Squares computed on the GPU were close to the expected.\n"; 
+
+      dout << __func__ << "(): Comparing " << num_samples << " psds with expected\n\n";
+      all_are_close = vals_are_close<float>( psds, expected_psds, num_samples, max_diff, debug );
+      if (!all_are_close) { 
+         throw std::runtime_error( "Not all of the psds were close to the expected." );
+      }
+      std::cout << "All PSDs computed on the GPU were close to the expected.\n";
+      std::cout << "\n"; 
+
    } catch (std::exception& ex) {
       throw std::runtime_error{
          std::string{"SimpleDSP::" + std::string{__func__} + "(): " + ex.what()}};

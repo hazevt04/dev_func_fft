@@ -1,5 +1,3 @@
-#pragma once
-
 #include <cufft.h>
 
 __device__ __constant__ cufftComplex w_values[] = {
@@ -324,3 +322,4 @@ __device__ __constant__ cufftComplex w_values[] = {
 	{0.9807852804032304,0.19509032201612808},
 	{0.9951847266721969,0.0980171403295605}
 };
+

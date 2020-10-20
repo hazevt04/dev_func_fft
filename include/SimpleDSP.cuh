@@ -1,8 +1,15 @@
 #pragma once
 
-#include <cufft.h>
+#include "my_utils.hpp"
+#include "my_file_io_funcs.hpp"
 
-constexpr float max_diff = 1e-3;
+#include "my_cuda_utils.hpp"
+#include "my_cufft_utils.hpp"
+
+// Tables for checking output
+#include "expected_sfrequencies.hpp"
+#include "expected_con_sqrs.hpp"
+#include "expected_psds.hpp"
 
 class SimpleDSP {
    public:

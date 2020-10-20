@@ -1,5 +1,4 @@
 // C++ File for main
-#include "my_utils.hpp"
 #include "SimpleDSP.cuh"
 
 #ifndef NUM_FFT_SIZE_BITS
