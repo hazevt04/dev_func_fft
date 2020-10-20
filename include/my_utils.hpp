@@ -16,6 +16,7 @@
 #include <complex>
 #include <algorithm>
 #include <random>
+#include <exception>
 
 #include "VariadicToOutputStream.hpp"
 
