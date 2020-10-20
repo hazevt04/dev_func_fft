@@ -5,10 +5,39 @@
 #include <cuda_runtime.h>
 #include <cuda_runtime_api.h>
 
+// Table only valid for case of 64 sample FFT
+#include "sincos_table.cuh"
+
+
 // From SMFFT, Shared Memory-Based CUDA FFT library, by Karel Adamek (THANKS!!!)
 // Found at: https://github.com/KAdamek/SMFFT
 
-// TODO: Replace sincosf with table lookup, maybe?
+// https://www.geeksforgeeks.org/number-of-leading-zeros-in-binary-representation-of-a-given-number/
+__device__ __inline__ int num_leading_zeros(unsigned int x) {
+    unsigned y;
+    int n = 32;
+    y = x >>16; if (y != 0) {n = n -16; x = y;}
+    y = x >> 8; if (y != 0) {n = n - 8; x = y;}
+    y = x >> 4; if (y != 0) {n = n - 4; x = y;}
+    y = x >> 2; if (y != 0) {n = n - 2; x = y;}
+    y = x >> 1; if (y != 0) return n - 2;
+    return n - x;
+}
+
+__device__ __inline__ int my_log2n(int x) {
+	return 31 - num_leading_zeros((unsigned int)x);
+}
+
+// Valid only for case of 64 sample FFT
+__device__ __inline__ int calc_w_index(int N, int m) {
+	return ((m * 5) + (my_log2n(N) - 2));
+}
+
+// Replace sincosf with table lookup
+__device__ __inline__ float2 Get_W_value_lookup(int N, int m){
+	return w_values[calc_w_index(N,m)];
+}
+
 __device__ __inline__ float2 Get_W_value(int N, int m){
 	float2 ctemp;
 	sincosf ( -6.283185308f*fdividef( (float) m, (float) N), &ctemp.y, &ctemp.x);
@@ -382,8 +411,8 @@ __device__ void do_SMFFT_CT_DIT(cufftComplex *sh_samples) {
 		parity  = ((itemp<<1)-1);
 		
 		if(const_params::fft_direction) W = Get_W_value_inverse(PoTp1, itemp*m_param);
-		else W = Get_W_value(PoTp1, itemp*m_param);
-		
+		else W = Get_W_value_lookup(PoTp1, itemp*m_param);
+	
 		Aftemp.x = W.x*A_DFT_value.x - W.y*A_DFT_value.y;
 		Aftemp.y = W.x*A_DFT_value.y + W.y*A_DFT_value.x;
 		Bftemp.x = W.x*B_DFT_value.x - W.y*B_DFT_value.y;
@@ -419,7 +448,7 @@ __device__ void do_SMFFT_CT_DIT(cufftComplex *sh_samples) {
 		j = threadIdx.x>>q;
 		
 		if(const_params::fft_direction) W = Get_W_value_inverse(PoTp1,m_param);
-		else W = Get_W_value(PoTp1,m_param);
+		else W = Get_W_value_lookup(PoTp1,m_param);
 		
 		A_read_index=j*(PoTp1<<1) + m_param;
 		B_read_index=j*(PoTp1<<1) + m_param + PoT;
