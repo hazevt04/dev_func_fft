@@ -17,7 +17,8 @@ def try_fft( filename, num_samples, fft_size, debug=False ):
     samples = get_samples( filename, num_samples, debug )
     start_index = 0
    
-    if debug: print( "fft_size = {}".format( fftshift ) )
+    if debug: print( "fft_size = {}".format( fft_size ) )
+    if debug: print( "num_samples = {}".format( num_samples ) )
     all_frequencies = []
     all_con_sqrs = []
     all_psds = []
@@ -46,30 +47,33 @@ def try_fft( filename, num_samples, fft_size, debug=False ):
     #all_frequencies = all_frequencies.view( np.float32 )
 
     print( "#pragma once\n" )
-    # print( "\n#include <cufft.h>\n" )
+    print( "\n#include <cufft.h>\n" )
+    
     # print( "constexpr cufftComplex expected_frequencies[] = {" )
     # index = 0
     # for frequency in all_frequencies:
     #     print( "\t{}{} ".format( frequency, (",","")[index >= num_samples-1] ) )
     #     index += 1
     # print( "};\n\n" )
+    
     # print( "constexpr float expected_con_sqrs[] = {" )
     # index = 0
     # for con_sqr in all_con_sqrs:
     #     print( "\t{}{} ".format( con_sqr, (",","")[index >= num_samples-1] ) )
     #     index += 1
     # print( "};\n" )
-    print( "constexpr float expected_psds[] = {" )
-    index = 0
-    for psd in all_psds:
-        print( "\t{}{} ".format( psd, (",","")[index >= num_samples-1] ) )
-        index += 1
-    print( "};\n" )
+    
+    # print( "constexpr float expected_psds[] = {" )
+    # index = 0
+    # for psd in all_psds:
+        # print( "\t{}{} ".format( psd, (",","")[index >= num_samples-1] ) )
+        # index += 1
+    # print( "};\n" )
     
 
 if __name__ == '__main__':
     filename = 'testdataBPSKcomplex.bin'
-    num_samples = 256
+    num_samples = 32768
     fft_size = 64
     debug = False
     try_fft( filename, num_samples, fft_size, debug ) 

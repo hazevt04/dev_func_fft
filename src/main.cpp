@@ -9,6 +9,24 @@
 #define FFT_SIZE (1u << (NUM_FFT_SIZE_BITS))
 #endif
 
+
+bool get_debug_flag( const char* input_string ) {
+   try {
+      if ( !(strcmp( input_string, "debug")) || !(strcmp( input_string, "-debug")) || !(strcmp( input_string, "--debug")) ||
+         !(strcmp( input_string, "d")) || !(strcmp( input_string, "-d")) || !(strcmp( input_string, "--d")) ||
+         !(strcmp( input_string, "dbg")) || !(strcmp( input_string, "-dbg")) || !(strcmp( input_string, "--dbg")) ||
+         !(strcmp( input_string, "v")) || !(strcmp( input_string, "-v")) || !(strcmp( input_string, "--verbose"))
+            ) {
+         return true;
+      }
+      return false;
+   } catch (std::exception& ex) {
+      throw std::runtime_error{ std::string{__func__} + std::string{"(): "} + ex.what() };
+   }
+
+}
+
+
 int get_num_samples( const char* input_string, const bool debug ) {
    try {
       dout << "input_string = " << std::string{input_string} << "\n"; 
@@ -29,7 +47,7 @@ int get_num_samples( const char* input_string, const bool debug ) {
       return num_samples;
 
    } catch (std::exception& ex) {
-      throw std::runtime_error{ std::string{__func__} + std::string{"(): ERROR: "} + ex.what() };
+      throw std::runtime_error{ std::string{__func__} + std::string{"(): "} + ex.what() };
    }
 }
 
@@ -39,6 +57,9 @@ int main( int argc, char* argv[] ) {
       bool debug = false;
       int num_samples = 4*FFT_SIZE;
 
+      if ( argc > 2 ) {
+         debug = get_debug_flag( argv[2] );
+      }
       if ( argc > 1 ) {
          num_samples = get_num_samples( argv[1], debug );
       }
