@@ -36,14 +36,14 @@ class SimpleDSP {
       cufftComplex* samples;
       cufftComplex* frequencies;
       cufftComplex* sfrequencies;
-      cufftComplex* con_sqrs;
+      float* con_sqrs;
       float* psds;
       
       cufftComplex* d_samples;
       cufftComplex* d_frequencies;
 
       cufftComplex* d_sfrequencies;
-      cufftComplex* d_con_sqrs;
+      float* d_con_sqrs;
       float* d_psds;
 
       int num_samples;

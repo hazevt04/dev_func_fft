@@ -8,6 +8,7 @@
 // Table only valid for case of 64 sample FFT
 #include "sincos_table.cuh"
 
+#include "simple_dsp_kernels.cuh"
 
 // From SMFFT, Shared Memory-Based CUDA FFT library, by Karel Adamek (THANKS!!!)
 // Found at: https://github.com/KAdamek/SMFFT
@@ -605,10 +606,12 @@ __device__ void do_SMFFT_CT_DIT(cufftComplex *sh_samples) {
 
 // From https://github.com/KAdamek/SMFFT/blob/master/SMFFT_CooleyTukey_C2C/FFT-GPU-32bit.cu
 template<class const_params>
-__global__ void simple_dsp_kernel(float* __restrict__ d_psds, cufftComplex* __restrict__ d_con_sqrs, cufftComplex* d_sfrequencies, 
+__global__ void simple_dsp_kernel(float* __restrict__ d_psds, float* __restrict__ d_con_sqrs, cufftComplex* d_sfrequencies, 
    const cufftComplex* __restrict__ d_samples, const int num_samples, const float log10num_con_sqrs) {
 
 	__shared__ cufftComplex sh_samples[const_params::fft_sm_required];
+	__shared__ float sh_con_sqrs[const_params::fft_sm_required];
+	__shared__ float sh_psds[const_params::fft_sm_required];
 
 	sh_samples[threadIdx.x]                                           = d_samples[threadIdx.x + blockIdx.x*const_params::fft_length];
 	sh_samples[threadIdx.x + const_params::fft_length_quarter]        = d_samples[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_quarter];
@@ -617,11 +620,26 @@ __global__ void simple_dsp_kernel(float* __restrict__ d_psds, cufftComplex* __re
 	
 	__syncthreads();
 	do_SMFFT_CT_DIT<const_params>(sh_samples);
-	
 	__syncthreads();
+	calc_con_sqrs(sh_con_sqrs, sh_samples);
+	__syncthreads();
+	calc_psds(sh_psds, sh_con_sqrs, log10num_con_sqrs);
+	__syncthreads();
+
 	d_sfrequencies[threadIdx.x + blockIdx.x*const_params::fft_length]                                           = sh_samples[threadIdx.x];
 	d_sfrequencies[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_quarter]        = sh_samples[threadIdx.x + const_params::fft_length_quarter];
 	d_sfrequencies[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_half]           = sh_samples[threadIdx.x + const_params::fft_length_half];
 	d_sfrequencies[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_three_quarters] = sh_samples[threadIdx.x + const_params::fft_length_three_quarters];
+
+	d_con_sqrs[threadIdx.x + blockIdx.x*const_params::fft_length]                                           = sh_con_sqrs[threadIdx.x];
+	d_con_sqrs[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_quarter]        = sh_con_sqrs[threadIdx.x + const_params::fft_length_quarter];
+	d_con_sqrs[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_half]           = sh_con_sqrs[threadIdx.x + const_params::fft_length_half];
+	d_con_sqrs[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_three_quarters] = sh_con_sqrs[threadIdx.x + const_params::fft_length_three_quarters];
+	
+	d_psds[threadIdx.x + blockIdx.x*const_params::fft_length]                                           = sh_psds[threadIdx.x];
+	d_psds[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_quarter]        = sh_psds[threadIdx.x + const_params::fft_length_quarter];
+	d_psds[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_half]           = sh_psds[threadIdx.x + const_params::fft_length_half];
+	d_psds[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_three_quarters] = sh_psds[threadIdx.x + const_params::fft_length_three_quarters];
+	
 }
 

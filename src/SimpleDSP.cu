@@ -13,6 +13,7 @@
 #include "sm_fft.cuh"
 
 #include "expected_sfrequencies.hpp"
+#include "expected_con_sqrs.hpp"
 
 SimpleDSP::SimpleDSP( 
       const int new_num_samples,
@@ -57,7 +58,7 @@ SimpleDSP::SimpleDSP(
       try_cuda_func_throw( cerror, cudaMemGetInfo( &free_gpu_memory_bytes, &total_gpu_memory_bytes ) );
       dout << __func__ << "(): GPU has " << ((float)free_gpu_memory_bytes)/1048576.f 
          << " MiB free out of " << ((float)total_gpu_memory_bytes)/1048576.f << " MiB available\n";
-      size_t total_needed_bytes = /*4*/3 * num_bytes + num_float_bytes;
+      size_t total_needed_bytes = 2 * num_bytes + 2 * num_float_bytes;
       if ( total_needed_bytes > free_gpu_memory_bytes ) {
          throw std::runtime_error{ std::string{"ERROR: Not enough free GPU memory. Need "} + 
             std::to_string(((float)total_needed_bytes)/1048576.f) + 
@@ -72,19 +73,16 @@ SimpleDSP::SimpleDSP(
       //try_cuda_func_throw( cerror, cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeEightByte ) );
 
       /*try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&samples, num_bytes ) );*/
-      /*try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&frequencies, num_bytes ) );*/
       /*try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&sfrequencies, num_bytes ) );*/
-      /*try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&con_sqrs, num_bytes ) );*/
+      /*try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&con_sqrs, num_float_bytes ) );*/
       /*try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&psds, num_float_bytes ) );*/
 
       try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&samples, num_bytes, cudaHostAllocMapped ) );
-      /*try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&frequencies, num_bytes, cudaHostAllocMapped ) );*/
       try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&sfrequencies, num_bytes, cudaHostAllocMapped ) );
-      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&con_sqrs, num_bytes, cudaHostAllocMapped ) );
+      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&con_sqrs, num_float_bytes, cudaHostAllocMapped ) );
       try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&psds, num_float_bytes, cudaHostAllocMapped ) );
 
       try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_samples, (void*)samples, 0 ) );
-      /*try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_frequencies, (void*)frequencies, 0 ) );*/
       try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_sfrequencies, (void*)sfrequencies, 0 ) );
       try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_con_sqrs, (void*)con_sqrs, 0 ) );
       try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_psds, (void*)psds, 0 ) );
@@ -94,12 +92,9 @@ SimpleDSP::SimpleDSP(
 	   try_cuda_func_throw( cerror, cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte) );
       
       for( int index = 0; index < num_samples; ++index ) {
-         /*frequencies[index].x = 0;*/
-         /*frequencies[index].y = 0;*/
          sfrequencies[index].x = 0;
          sfrequencies[index].y = 0;
-         con_sqrs[index].x = 0;
-         con_sqrs[index].y = 0;
+         con_sqrs[index] = 0;
          psds[index] = 0;
       } 
 
@@ -145,7 +140,7 @@ void SimpleDSP::run() {
       dout << __func__ << "(): Launching simple_dsp_kernel()...\n";
       // Launch the kernel
       simple_dsp_kernel<FFT_64_forward><<<num_blocks, threads_per_block>>>(
-         d_psds, d_con_sqrs, d_sfrequencies, /*d_frequencies, */d_samples, num_samples, log10num_con_sqrs);
+         d_psds, d_con_sqrs, d_sfrequencies, d_samples, num_samples, log10num_con_sqrs);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
       dout << __func__ << "(): Done with simple_dsp_kernel...\n\n"; 
@@ -157,19 +152,28 @@ void SimpleDSP::run() {
       if ( debug ) {
          const char delim[] = ", ";
          const char suffix[] = "\n";
-         print_cufftComplexes(sfrequencies, num_samples, "Shifted Frequencies from GPU: ", delim, suffix);
-         /*print_cufftComplexes(frequencies, num_samples, "Frequencies from GPU: ", delim, suffix);*/
          print_cufftComplexes(expected_sfrequencies, num_samples, "Expected Shifted Frequencies: ", delim, suffix);
+         print_cufftComplexes(sfrequencies, num_samples, "Shifted Frequencies from GPU: ", delim, suffix);
+         print_vals<float>(expected_con_sqrs, num_samples, "Expected Conjugate Squares: ", delim, suffix);
+         print_vals<float>(con_sqrs, num_samples, "Conjugate Squares: ", delim, suffix);
       }
       
       float max_diff = 1e-2;
-      dout << __func__ << "(): Comparing " << num_samples << " results with expected\n\n";
+      dout << __func__ << "(): Comparing " << num_samples << " shifted frequencies with expected\n";
 
       bool all_are_close = cufftComplexes_are_close( sfrequencies, expected_sfrequencies, num_samples, max_diff, debug );
       if (!all_are_close) { 
-         throw std::runtime_error( "ERROR: Not all of the shifted frequencies were close to the expected." );
+         throw std::runtime_error( "Not all of the shifted frequencies were close to the expected." );
       }
       std::cout << "All Shifted Frequencies computed on the GPU were close to the expected.\n"; 
+
+      max_diff = 1e-1;
+      dout << __func__ << "(): Comparing " << num_samples << " conjugate squares with expected\n\n";
+      all_are_close = vals_are_close<float>( con_sqrs, expected_con_sqrs, num_samples, max_diff, debug );
+      if (!all_are_close) { 
+         throw std::runtime_error( "Not all of the conjugate squares were close to the expected." );
+      }
+      std::cout << "All Conjugate Squares computed on the GPU were close to the expected.\n\n"; 
       
    } catch (std::exception& ex) {
       throw std::runtime_error{
@@ -184,8 +188,6 @@ void SimpleDSP::run() {
 SimpleDSP::~SimpleDSP() {
    if (samples) cudaFreeHost(samples);
 
-   /*if (frequencies) cudaFreeHost(frequencies);*/
-   
    if (frequencies) cudaFreeHost(sfrequencies);
 
    if (con_sqrs) cudaFreeHost(con_sqrs);
