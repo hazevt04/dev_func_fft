@@ -17,7 +17,7 @@ SimpleDSP::SimpleDSP(
       size_t num_bytes = sizeof( cufftComplex ) * num_samples;
       size_t num_float_bytes = sizeof( float ) * num_samples;
       
-      log10num_con_sqrs = 10*(float)std::log10( num_samples );
+      log10num_con_sqrs = 10*(float)std::log10( FFT_SIZE );
       
       threads_per_block = FFT_SIZE/2;
       num_blocks = num_ffts/2;
@@ -155,7 +155,7 @@ void SimpleDSP::run() {
       }
       std::cout << "All Shifted Frequencies computed on the GPU were close to the expected.\n"; 
 
-      max_diff = 1e-1;
+      max_diff = 1;
       dout << __func__ << "(): Comparing " << num_samples << " conjugate squares with expected\n";
       all_are_close = vals_are_close<float>( con_sqrs, expected_con_sqrs, num_samples, max_diff, debug );
       if (!all_are_close) { 

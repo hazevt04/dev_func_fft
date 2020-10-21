@@ -169,6 +169,8 @@ void gen_reals( std::vector<RealType>& reals, const float lower, const float upp
    } 
 }
 
+#include <iomanip>
+
 template <class T>
 void print_vals(const std::vector<T>& vals,
    const char* prefix = "",
@@ -222,8 +224,8 @@ std::pair<bool, int> mismatch_where(const T* lvals, const T* rvals, int num_vals
    for (int index = 0; index < num_vals; ++index) {
       if (lvals[index] != rvals[index]) {
          std::cout << "Mismatch:\n";
-         std::cout << "Lval[" << index << "] = " << lvals[index] << "\n";
-         std::cout << "Rval[" << index << "] = " << rvals[index] << "\n";
+         std::cout << "Lval[" << index << "] = " << std::setprecision(9) << lvals[index] << "\n";
+         std::cout << "Rval[" << index << "] = " << std::setprecision(9) << rvals[index] << "\n";
          return std::pair<bool, int>{false,index};
       }
    }
@@ -236,8 +238,8 @@ bool compare_vals(const std::vector<T>& lvals, const std::vector<T>& rvals) {
    for (int index = 0; index < (int)lvals.size(); ++index) {
       if (lvals[index] != rvals[index]) {
          std::cout << "Mismatch:\n";
-         std::cout << "Lval[" << index << "] = " << lvals[index] << "\n";
-         std::cout << "Rval[" << index << "] = " << rvals[index] << "\n";
+         std::cout << "Lval[" << index << "] = " << std::setprecision(9) << lvals[index] << "\n";
+         std::cout << "Rval[" << index << "] = " << std::setprecision(9) << rvals[index] << "\n";
          return false;
       }
    }
@@ -250,8 +252,8 @@ std::pair<bool, int> mismatch_where(const std::vector<T>& lvals, const std::vect
    for (int index = 0; index < (int)lvals.size(); ++index) {
       if (lvals[index] != rvals[index]) {
          std::cout << "Mismatch:\n";
-         std::cout << "Lval[" << index << "] = " << lvals[index] << "\n";
-         std::cout << "Rval[" << index << "] = " << rvals[index] << "\n";
+         std::cout << "Lval[" << index << "] = " << std::setprecision(9)<< lvals[index] << "\n";
+         std::cout << "Rval[" << index << "] = " << std::setprecision(9) << rvals[index] << "\n";
          return std::pair<bool, int>{false,index};
       }
    }
@@ -261,7 +263,6 @@ std::pair<bool, int> mismatch_where(const std::vector<T>& lvals, const std::vect
 template<typename T>
 using complex_vec = std::vector<std::complex<T>>;
 
-#include <iomanip>
 
 template<typename T>
 bool complex_vals_are_close( const complex_vec<T>& lvals, const complex_vec<T>& rvals, const T& max_diff ) {
@@ -311,8 +312,8 @@ bool vals_are_close( const std::vector<T>& lvals, const std::vector<T>& rvals, c
 
       if ( ( abs_diff > max_diff ) ) {
          std::cout << "Mismatch:\n";
-         std::cout << "Lval[" << index << "] = " << lvals[index] << "\n";
-         std::cout << "Rval[" << index << "] = " << rvals[index] << "\n";
+         std::cout << "Lval[" << index << "] = " << std::setprecision(9) << lvals[index] << "\n";
+         std::cout << "Rval[" << index << "] = " << std::setprecision(9) << rvals[index] << "\n";
          std::cout << "Difference = " << abs_diff << "\n";
          std::cout << "Max Difference = " << max_diff << "\n";
          return false;
@@ -330,8 +331,8 @@ bool vals_are_close( const T* lvals, const T* rvals, const int num_vals, const T
 
       if ( ( abs_diff > max_diff ) ) {
          std::cout << "Mismatch:\n";
-         std::cout << "Lval[" << index << "] = " << lvals[index] << "\n";
-         std::cout << "Rval[" << index << "] = " << rvals[index] << "\n";
+         std::cout << "Lval[" << index << "] = " << std::setprecision(9) << lvals[index] << "\n";
+         std::cout << "Rval[" << index << "] = " << std::setprecision(9) << rvals[index] << "\n";
          std::cout << "Difference = " << abs_diff << "\n";
          std::cout << "Max Difference = " << max_diff << "\n";
          return false;
@@ -348,8 +349,8 @@ std::pair<bool,int> mismatch_where( const std::vector<T>& lvals, const std::vect
 
       if ( ( abs_diff > max_diff ) ) {
          std::cout << "Mismatch:\n";
-         std::cout << "Lval[" << index << "] = " << lvals[index] << "\n";
-         std::cout << "Rval[" << index << "] = " << rvals[index] << "\n";
+         std::cout << "Lval[" << index << "] = " << std::setprecision(9) << lvals[index] << "\n";
+         std::cout << "Rval[" << index << "] = " << std::setprecision(9) << rvals[index] << "\n";
          std::cout << "Difference = " << abs_diff << "\n";
          std::cout << "Max Difference = " << max_diff << "\n";
          return std::pair<bool,int>{false,index};
