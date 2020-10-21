@@ -17,8 +17,6 @@ SimpleDSP::SimpleDSP(
       size_t num_bytes = sizeof( cufftComplex ) * num_samples;
       size_t num_float_bytes = sizeof( float ) * num_samples;
       
-      log10num_con_sqrs = 10*(float)std::log10( FFT_SIZE );
-      
       threads_per_block = FFT_SIZE/2;
       num_blocks = num_ffts/2;
 
@@ -29,9 +27,9 @@ SimpleDSP::SimpleDSP(
       dout << __func__ << "(): num_blocks = " << num_blocks << "\n";
 
       dout << __func__ << "(): FFT_SIZE is " << FFT_SIZE << "\n"; 
-      dout << __func__ << "(): NUM_FFT_SIZE_BITS is " << NUM_FFT_SIZE_BITS << "\n\n";
+      dout << __func__ << "(): NUM_FFT_SIZE_BITS is " << NUM_FFT_SIZE_BITS << "\n";
+      dout << __func__ << "(): TEN_LOG_TEN_FFT_SIZE is " << TEN_LOG_TEN_FFT_SIZE << "\n\n";
 
-      dout << __func__ << "(): log10num_con_sqrs is " << log10num_con_sqrs << "\n"; 
       dout << __func__ << "(): num_bytes is " << num_bytes << "\n"; 
       dout << __func__ << "(): num_float_bytes is " << num_float_bytes << "\n\n"; 
 
@@ -126,7 +124,7 @@ void SimpleDSP::run() {
       dout << __func__ << "(): Launching simple_dsp_kernel()...\n";
       // Launch the kernel
       simple_dsp_kernel<FFT_64_forward><<<num_blocks, threads_per_block>>>(
-         d_psds, d_con_sqrs, d_sfrequencies, d_samples, num_samples, log10num_con_sqrs);
+         d_psds, d_con_sqrs, d_sfrequencies, d_samples, num_samples);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
       dout << __func__ << "(): Done with simple_dsp_kernel...\n\n"; 

@@ -27,7 +27,6 @@ class SimpleDSP {
          num_samples(0),
          threads_per_block(0),
          num_blocks(0),
-         log10num_con_sqrs(0),
          num_bytes(0),
          num_float_bytes(0),
          debug(false) {}
@@ -57,7 +56,6 @@ class SimpleDSP {
       int num_ffts;
       int threads_per_block;
       int num_blocks;
-      float log10num_con_sqrs;
 
       size_t num_bytes;
       size_t num_float_bytes;

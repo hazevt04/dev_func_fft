@@ -10,6 +10,11 @@
 #define FFT_SIZE (1u << (NUM_FFT_SIZE_BITS))
 #endif
 
+#ifndef TEN_LOG_TEN_FFT_SIZE
+// Pre-computed 10 * log10(64)
+#define TEN_LOG_TEN_FFT_SIZE (18.06179973983887f)
+#endif
+
 #ifndef HALF_FFT_SIZE
 #define HALF_FFT_SIZE (1u << ((NUM_FFT_SIZE_BITS)-1))
 #endif
@@ -36,12 +41,11 @@ __device__
 void calc_con_sqrs(float* __restrict__ sh_con_sqrs, const cufftComplex* __restrict__ sh_frequencies);
 
 __device__
-void calc_psds(float* __restrict__ sh_psds, const float* __restrict__ sh_con_sqrs, const float log10num_con_sqrs);
-
+void calc_psds(float* __restrict__ sh_psds, const float* __restrict__ sh_con_sqrs);
 
 template<class const_params>
 __global__ void simple_dsp_kernel(float* __restrict__ d_psds, float* __restrict__ d_con_sqrs, cufftComplex* d_sfrequencies, 
-   const cufftComplex* __restrict__ d_samples, const int num_samples, const float log10num_con_sqrs) {
+   const cufftComplex* __restrict__ d_samples, const int num_samples) {
 
 	__shared__ cufftComplex sh_samples[const_params::fft_sm_required];
 	__shared__ float sh_con_sqrs[const_params::fft_sm_required];
@@ -57,7 +61,7 @@ __global__ void simple_dsp_kernel(float* __restrict__ d_psds, float* __restrict_
 	__syncthreads();
 	calc_con_sqrs(sh_con_sqrs, sh_samples);
 	__syncthreads();
-	calc_psds(sh_psds, sh_con_sqrs, log10num_con_sqrs);
+	calc_psds(sh_psds, sh_con_sqrs);
 	__syncthreads();
 
 	d_sfrequencies[threadIdx.x + blockIdx.x*const_params::fft_length]                                           = sh_samples[threadIdx.x];
