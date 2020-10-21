@@ -56,20 +56,20 @@ SimpleDSP::SimpleDSP(
       
       //try_cuda_func_throw( cerror, cudaDeviceSetSharedMemConfig( cudaSharedMemBankSizeEightByte ) );
 
-      /*try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&samples, num_bytes ) );*/
-      /*try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&sfrequencies, num_bytes ) );*/
-      /*try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&con_sqrs, num_float_bytes ) );*/
-      /*try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&psds, num_float_bytes ) );*/
+      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&samples, num_bytes ) );
+      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&sfrequencies, num_bytes ) );
+      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&con_sqrs, num_float_bytes ) );
+      try_cuda_func_throw( cerror, cudaMallocManaged( (void**)&psds, num_float_bytes ) );
 
-      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&samples, num_bytes, cudaHostAllocMapped ) );
-      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&sfrequencies, num_bytes, cudaHostAllocMapped ) );
-      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&con_sqrs, num_float_bytes, cudaHostAllocMapped ) );
-      try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&psds, num_float_bytes, cudaHostAllocMapped ) );
+      /*try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&samples, num_bytes, cudaHostAllocMapped ) );*/
+      /*try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&sfrequencies, num_bytes, cudaHostAllocMapped ) );*/
+      /*try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&con_sqrs, num_float_bytes, cudaHostAllocMapped ) );*/
+      /*try_cuda_func_throw( cerror, cudaHostAlloc( (void**)&psds, num_float_bytes, cudaHostAllocMapped ) );*/
 
-      try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_samples, (void*)samples, 0 ) );
-      try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_sfrequencies, (void*)sfrequencies, 0 ) );
-      try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_con_sqrs, (void*)con_sqrs, 0 ) );
-      try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_psds, (void*)psds, 0 ) );
+      /*try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_samples, (void*)samples, 0 ) );*/
+      /*try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_sfrequencies, (void*)sfrequencies, 0 ) );*/
+      /*try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_con_sqrs, (void*)con_sqrs, 0 ) );*/
+      /*try_cuda_func_throw( cerror, cudaHostGetDevicePointer( (void**)&d_psds, (void*)psds, 0 ) );*/
 	
 
       try_cuda_func_throw( cerror, cudaDeviceSetCacheConfig(cudaFuncCachePreferShared) );
@@ -123,8 +123,10 @@ void SimpleDSP::run() {
 
       dout << __func__ << "(): Launching simple_dsp_kernel()...\n";
       // Launch the kernel
+      /*simple_dsp_kernel<FFT_64_forward><<<num_blocks, threads_per_block>>>(*/
+      /*   d_psds, d_con_sqrs, d_sfrequencies, d_samples);*/
       simple_dsp_kernel<FFT_64_forward><<<num_blocks, threads_per_block>>>(
-         d_psds, d_con_sqrs, d_sfrequencies, d_samples, num_samples);
+         psds, con_sqrs, sfrequencies, samples);
 
       try_cuda_func_throw( cerror, cudaDeviceSynchronize() );
       dout << __func__ << "(): Done with simple_dsp_kernel...\n\n"; 

@@ -25,8 +25,8 @@ LIST(APPEND CUDA_NVCC_FLAGS "--maxrregcount=64")
 
 IF(CMAKE_BUILD_TYPE MATCHES Debug)
    message(status "debug mode")
-   LIST(APPEND CUDA_NVCC_FLAGS "--device-debug")
-   #LIST(APPEND CUDA_NVCC_FLAGS "--generate-line-info")
+   #LIST(APPEND CUDA_NVCC_FLAGS "--device-debug")
+   LIST(APPEND CUDA_NVCC_FLAGS "--generate-line-info")
 ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
 
 set(EXEC_NAME "${CMAKE_PROJECT_NAME}")

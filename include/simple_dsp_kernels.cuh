@@ -45,7 +45,7 @@ void calc_psds(float* __restrict__ sh_psds, const float* __restrict__ sh_con_sqr
 
 template<class const_params>
 __global__ void simple_dsp_kernel(float* __restrict__ d_psds, float* __restrict__ d_con_sqrs, cufftComplex* d_sfrequencies, 
-   const cufftComplex* __restrict__ d_samples, const int num_samples) {
+   const cufftComplex* __restrict__ d_samples) {
 
 	__shared__ cufftComplex sh_samples[const_params::fft_sm_required];
 	__shared__ float sh_con_sqrs[const_params::fft_sm_required];
@@ -57,7 +57,7 @@ __global__ void simple_dsp_kernel(float* __restrict__ d_psds, float* __restrict_
 	sh_samples[threadIdx.x + const_params::fft_length_three_quarters] = d_samples[threadIdx.x + blockIdx.x*const_params::fft_length + const_params::fft_length_three_quarters];
 	
 	__syncthreads();
-	do_SMFFT_CT_DIT<const_params>(sh_samples);
+	sm_fft<const_params>(sh_samples);
 	__syncthreads();
 	calc_con_sqrs(sh_con_sqrs, sh_samples);
 	__syncthreads();
